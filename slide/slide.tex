@@ -1,0 +1,247 @@
+\documentclass[aspectratio=169]{beamer}
+
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{multicol}
+\usepackage{HKUSTstyle}
+\usefonttheme{serif}
+
+\graphicspath{{pic/}{pic/psa_manifest/}{pic/psa_ml/}}
+
+\author{Your Name}
+\title{Machine-Learning-Assisted PSA Simulation Analysis}
+\subtitle{\texorpdfstring{CO$_2$}{CO2} Capture from 1000 LHS Samples and Final-Cycle Profiles}
+\institute{
+    @connect.hkust-gz.edu.cn\\
+    SEEN5320 Final Project\\
+    The Hong Kong University of Science and Technology (Guangzhou)
+}
+\date{\small \today}
+
+\begin{document}
+
+\begin{frame}
+    \titlepage
+    \vspace*{-0.5cm}
+    \begin{center}
+        \includegraphics[keepaspectratio,scale=0.025]{UST.png}
+    \end{center}
+\end{frame}
+
+\begin{frame}{Project Question}
+\begin{block}{Research question}
+Can machine learning turn a PSA simulation campaign into accurate surrogates and interpretable operating guidance?
+\end{block}
+\begin{itemize}
+    \item System: four-step/extended-cycle PSA CO$_2$/N$_2$ separation with Zeolite 13X.
+    \item Data: 1000 successful LHS samples and final-cycle time-space profiles.
+    \item ML tasks: regression, high-performance classification, PCA/K-means regime discovery.
+    \item Goal: reduce simulator dependence while preserving physical interpretation.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Dataset}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.45\textwidth}
+\begin{table}
+\centering
+\scriptsize
+\begin{tabular}{ll}
+\toprule
+Item & Value \\
+\midrule
+Successful simulations & 1000 \\
+Design variables & 7 \\
+Performance KPIs & 4 \\
+Profile fields & $P$, $y$, $q$, $T$, $T_w$ \\
+Profile features & 470 \\
+Pareto samples & 138 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\end{column}
+\begin{column}{0.48\textwidth}
+\includegraphics[width=\textwidth]{01_sampling_coverage_histograms.png}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{From Profiles to ML Features}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.50\textwidth}
+\begin{itemize}
+    \item Each CSV stores the last returned cycle over time and bed position.
+    \item For each PSA step, features summarize means, ranges, final inlet/outlet values, axial gradients, loading selectivity proxies, and gas-wall temperature lag.
+    \item These features connect scalar KPIs to the internal state of the bed.
+\end{itemize}
+\end{column}
+\begin{column}{0.48\textwidth}
+\includegraphics[width=\textwidth]{06_adsorption_profile_heatmaps.png}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Machine Learning Workflow}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.48\textwidth}
+\textbf{Supervised learning}
+\begin{itemize}
+    \item Regression targets: purity, recovery, productivity, $\log_{10}$(energy).
+    \item Models: Ridge, random forest, gradient boosting, SVR, MLP.
+    \item Validation: fixed 80/20 train-test split.
+\end{itemize}
+\end{column}
+\begin{column}{0.48\textwidth}
+\textbf{Screening and interpretation}
+\begin{itemize}
+    \item Classify top 20\% balanced-score samples.
+    \item Compute four-objective Pareto set.
+    \item Use PCA/K-means to identify operating regimes.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Key Tradeoff: Purity vs Recovery}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.50\textwidth}
+\includegraphics[width=\textwidth]{04_objective_tradeoff_pareto.png}
+\end{column}
+\begin{column}{0.47\textwidth}
+\begin{itemize}
+    \item Spearman correlation between purity and recovery: $-0.691$.
+    \item Highest purity: 0.670, but recovery is only 0.0056 and energy is 84379 kWh ton$^{-1}$.
+    \item Best balanced case: recovery 0.996 and productivity 106.6 mol kg$^{-1}$ h$^{-1}$, but purity remains near feed level.
+    \item This is the central process limitation in the sampled domain.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Surrogate Accuracy}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.50\textwidth}
+\includegraphics[width=\textwidth]{01_regression_predicted_vs_simulated.png}
+\end{column}
+\begin{column}{0.47\textwidth}
+\begin{table}
+\centering
+\small
+\begin{tabular}{lcc}
+\toprule
+Target & RMSE & $R^2$ \\
+\midrule
+Purity & 0.00590 & 0.985 \\
+Recovery & 0.00935 & 0.999 \\
+Productivity & 1.703 & 0.994 \\
+$\log_{10}$(energy) & 0.0897 & 0.952 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\begin{itemize}
+    \item Best model: Ridge.
+    \item Best feature set: design + profile features.
+    \item Mean test $R^2$: 0.982.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Model Comparison}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.58\textwidth}
+\includegraphics[width=\textwidth]{02_model_metric_comparison.png}
+\end{column}
+\begin{column}{0.39\textwidth}
+\begin{itemize}
+    \item Profile features improve every model family.
+    \item Linear Ridge works best because final-cycle profiles already encode much of the nonlinear simulator response.
+    \item Design-only models are weaker, especially for energy and purity.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{High-Performance Screening}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.38\textwidth}
+\includegraphics[width=\textwidth]{05_classification_confusion_matrix.png}
+\end{column}
+\begin{column}{0.54\textwidth}
+\begin{table}
+\centering
+\scriptsize
+\begin{tabular}{lccc}
+\toprule
+Classifier & Accuracy & F1 & ROC-AUC \\
+\midrule
+Logistic reg. & 0.990 & 0.976 & 0.9995 \\
+Random forest & 0.950 & 0.865 & 0.9903 \\
+SVM & 0.925 & 0.839 & 0.9816 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\begin{itemize}
+    \item Positive class: top 20\% by balanced score.
+    \item The high-performance region is highly separable with profile-informed features.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{What Controls the Surrogate?}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.56\textwidth}
+\includegraphics[width=\textwidth]{03_feature_importance.png}
+\end{column}
+\begin{column}{0.41\textwidth}
+\begin{itemize}
+    \item Dominant variable: light-product reflux ratio $x_3$.
+    \item Late light-reflux outlet temperature and pressure are also important.
+    \item Final pressure and CO$_2$ gradients encode how regenerated the bed is before the next cycle.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Operating Regimes}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.58\textwidth}
+\includegraphics[width=\textwidth]{04_pca_operating_regimes.png}
+\end{column}
+\begin{column}{0.39\textwidth}
+\begin{itemize}
+    \item PCA uses design, KPI, and profile features.
+    \item K-means separates broad low-to-medium performance regions from small high-recovery pockets.
+    \item High balanced-score samples concentrate in limited zones instead of spanning the whole design space.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Conclusions}
+\begin{itemize}
+    \item ML surrogates can reproduce PSA simulation outputs accurately from one completed LHS campaign.
+    \item Final-cycle profile features are valuable because they expose internal bed states that design variables alone miss.
+    \item The sampled design space shows a severe purity-recovery-energy conflict.
+    \item Practical next step: expand the domain with material variables and optimize around purity constraints, not only balanced KPI score.
+\end{itemize}
+\vspace{0.4cm}
+\small Generative AI was used to assist coding, figure generation, and English drafting.
+\end{frame}
+
+\begin{frame}
+\begin{center}
+\Large Thank you
+\vspace{1cm}
+
+\normalsize
+Your Name\\
+@connect.hkust-gz.edu.cn
+\end{center}
+\end{frame}
+
+\end{document}
