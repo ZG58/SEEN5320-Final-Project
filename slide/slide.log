@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.4.27)  27 APR 2026 22:52
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.4.28)  28 APR 2026 14:31
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -692,105 +692,34 @@ Package: booktabs 2020/01/12 v1.61803398 Publication quality tables
 \@thisruleclass=\count360
 \@lastruleclass=\count361
 \@thisrulewidth=\dimen314
-)
-(D:\Program Files\MiKTeX\tex/latex/tools\multicol.sty
-Package: multicol 2025/10/21 v2.0b multicolumn formatting (FMi)
-\c@tracingmulticols=\count362
-\mult@box=\box78
-\multicol@leftmargin=\dimen315
-\c@unbalance=\count363
-\c@collectmore=\count364
-\doublecol@number=\count365
-\multicoltolerance=\count366
-\multicolpretolerance=\count367
-\full@width=\dimen316
-\page@free=\dimen317
-\premulticols=\dimen318
-\postmulticols=\dimen319
-\multicolsep=\skip67
-\multicolbaselineskip=\skip68
-\partial@page=\box79
-\last@line=\box80
-\mc@boxedresult=\box81
-\maxbalancingoverflow=\dimen320
-\mult@rightbox=\box82
-\mult@grightbox=\box83
-\mult@firstbox=\box84
-\mult@gfirstbox=\box85
-\@tempa=\box86
-\@tempa=\box87
-\@tempa=\box88
-\@tempa=\box89
-\@tempa=\box90
-\@tempa=\box91
-\@tempa=\box92
-\@tempa=\box93
-\@tempa=\box94
-\@tempa=\box95
-\@tempa=\box96
-\@tempa=\box97
-\@tempa=\box98
-\@tempa=\box99
-\@tempa=\box100
-\@tempa=\box101
-\@tempa=\box102
-\@tempa=\box103
-\@tempa=\box104
-\@tempa=\box105
-\@tempa=\box106
-\@tempa=\box107
-\@tempa=\box108
-\@tempa=\box109
-\@tempa=\box110
-\@tempa=\box111
-\@tempa=\box112
-\@tempa=\box113
-\@tempa=\box114
-\@tempa=\box115
-\@tempa=\box116
-\@tempa=\box117
-\@tempa=\box118
-\@tempa=\box119
-\@tempa=\box120
-\@tempa=\box121
-\c@minrows=\count368
-\c@columnbadness=\count369
-\c@finalcolumnbadness=\count370
-\last@try=\dimen321
-\multicolovershoot=\dimen322
-\multicolundershoot=\dimen323
-\mult@nat@firstbox=\box122
-\colbreak@box=\box123
-\mc@col@check@num=\count371
-\g__mc_curr_col_int=\count372
 ) (HKUSTstyle.sty
 (D:\Program Files\MiKTeX\tex/latex/beamer\beamerouterthemesmoothbars.sty)
 (D:\Program Files\MiKTeX\tex/latex/beamer\beamerinnerthemecircles.sty))
 (D:\Program Files\MiKTeX\tex/latex/beamer\beamerfontthemeserif.sty)
 (D:\Program Files\MiKTeX\tex/latex/l3backend\l3backend-pdftex.def
 File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
-\l__color_backend_stack_int=\count373
+\l__color_backend_stack_int=\count362
 ) (slide.aux)
 \openout1 = `slide.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 24.
-LaTeX Font Info:    ... okay on input line 24.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 24.
-LaTeX Font Info:    ... okay on input line 24.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 24.
-LaTeX Font Info:    ... okay on input line 24.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 24.
-LaTeX Font Info:    ... okay on input line 24.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 24.
-LaTeX Font Info:    ... okay on input line 24.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 24.
-LaTeX Font Info:    ... okay on input line 24.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 24.
-LaTeX Font Info:    ... okay on input line 24.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 24.
-LaTeX Font Info:    ... okay on input line 24.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 24.
-LaTeX Font Info:    ... okay on input line 24.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -828,16 +757,16 @@ LaTeX Font Info:    ... okay on input line 24.
 
 (D:\Program Files\MiKTeX\tex/context/base/mkii\supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count374
-\scratchdimen=\dimen324
-\scratchbox=\box124
-\nofMPsegments=\count375
-\nofMParguments=\count376
+\scratchcounter=\count363
+\scratchdimen=\dimen315
+\scratchbox=\box78
+\nofMPsegments=\count364
+\nofMParguments=\count365
 \everyMPshowfont=\toks46
-\MPscratchCnt=\count377
-\MPscratchDim=\dimen325
-\MPnumerator=\count378
-\makeMPintoPDFobject=\count379
+\MPscratchCnt=\count366
+\MPscratchDim=\dimen316
+\MPnumerator=\count367
+\makeMPintoPDFobject=\count368
 \everyMPtoPDFconversion=\toks47
 ) (D:\Program Files\MiKTeX\tex/latex/epstopdf-pkg\epstopdf-base.sty
 Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
@@ -847,7 +776,7 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
 (D:\Program Files\MiKTeX\tex/latex/00miktex\epstopdf-sys.cfg
 File: epstopdf-sys.cfg 2021/03/18 v2.0 Configuration of epstopdf for MiKTeX
 ))
-Package hyperref Info: Link coloring OFF on input line 24.
+Package hyperref Info: Link coloring OFF on input line 23.
  (slide.out)
 (slide.out)
 \@outlinefile=\write5
@@ -878,12 +807,21 @@ Dictionary: translator-numbers-dictionary, Language: English
 lish.dict
 Dictionary: translator-theorem-dictionary, Language: English 
 ) (slide.nav)
-LaTeX Font Info:    Trying to load font information for U+msa on input line 32.
+Overfull \hbox (7.94727pt too wide) in paragraph at lines 23--23
+ [][][][]  
+ []
 
- (D:\Program Files\MiKTeX\tex/latex/amsfonts\umsa.fd
+
+Overfull \hbox (7.94727pt too wide) in paragraph at lines 31--31
+ [][][][]  
+ []
+
+LaTeX Font Info:    Trying to load font information for U+msa on input line 31.
+
+(D:\Program Files\MiKTeX\tex/latex/amsfonts\umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 32.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 31.
 
 
 (D:\Program Files\MiKTeX\tex/latex/amsfonts\umsb.fd
@@ -892,99 +830,162 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 <pic/UST.png, id=24, 1204.5pt x 1851.91875pt>
 File: pic/UST.png Graphic file (type png)
 <use pic/UST.png>
-Package pdftex.def Info: pic/UST.png  used on input line 32.
+Package pdftex.def Info: pic/UST.png  used on input line 31.
 (pdftex.def)             Requested size: 30.10507pt x 46.28654pt.
- [1
+
+Overfull \hbox (7.94727pt too wide) has occurred while \output is active
+ [][][][]  
+ []
+
+[1
 
 {C:/Users/Administrator/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map} <./pi
-c/UST.png>] [2
+c/UST.png>]
+Overfull \hbox (7.94727pt too wide) in paragraph at lines 44--44
+ [][][][]  
+ []
+
+
+Overfull \hbox (7.94727pt too wide) has occurred while \output is active
+ [][][][]  
+ []
+
+[2
 
 ]
-<pic/psa_manifest/01_sampling_coverage_histograms.png, id=92, 968.418pt x 755.4
-624pt>
-File: pic/psa_manifest/01_sampling_coverage_histograms.png Graphic file (type p
-ng)
-<use pic/psa_manifest/01_sampling_coverage_histograms.png>
-Package pdftex.def Info: pic/psa_manifest/01_sampling_coverage_histograms.png  
-used on input line 70.
-(pdftex.def)             Requested size: 191.20082pt x 149.1532pt.
- [3
+Overfull \hbox (7.94727pt too wide) in paragraph at lines 73--73
+ [][][][]  
+ []
 
- <./pic/psa_manifest/01_sampling_coverage_histograms.png>]
-<pic/psa_ml/06_adsorption_profile_heatmaps.png, id=123, 815.9283pt x 600.8046pt
->
-File: pic/psa_ml/06_adsorption_profile_heatmaps.png Graphic file (type png)
-<use pic/psa_ml/06_adsorption_profile_heatmaps.png>
-Package pdftex.def Info: pic/psa_ml/06_adsorption_profile_heatmaps.png  used on
- input line 85.
-(pdftex.def)             Requested size: 191.20082pt x 140.78572pt.
- [4
+<pic/psa_ga/01_manifest_sampling_coverage.png, id=94, 896.3889pt x 683.1924pt>
+File: pic/psa_ga/01_manifest_sampling_coverage.png Graphic file (type png)
+<use pic/psa_ga/01_manifest_sampling_coverage.png>
+Package pdftex.def Info: pic/psa_ga/01_manifest_sampling_coverage.png  used on 
+input line 73.
+(pdftex.def)             Requested size: 207.13776pt x 157.8711pt.
 
- <./pic/psa_ml/06_adsorption_profile_heatmaps.png>] [5
+Overfull \hbox (7.94727pt too wide) has occurred while \output is active
+ [][][][]  
+ []
+
+[3
+
+ <./pic/psa_ga/01_manifest_sampling_coverage.png>]
+Overfull \hbox (7.94727pt too wide) in paragraph at lines 90--90
+ [][][][]  
+ []
+
+<pic/psa_ga/02_surrogate_validation.png, id=123, 751.3671pt x 594.3003pt>
+File: pic/psa_ga/02_surrogate_validation.png Graphic file (type png)
+<use pic/psa_ga/02_surrogate_validation.png>
+Package pdftex.def Info: pic/psa_ga/02_surrogate_validation.png  used on input 
+line 90.
+(pdftex.def)             Requested size: 207.13776pt x 163.83662pt.
+
+Overfull \hbox (7.94727pt too wide) has occurred while \output is active
+ [][][][]  
+ []
+
+[4
+
+ <./pic/psa_ga/02_surrogate_validation.png>]
+Overfull \hbox (7.94727pt too wide) in paragraph at lines 118--118
+ [][][][]  
+ []
+
+<pic/psa_ga/03_surrogate_metric_summary.png, id=153, 533.1117pt x 359.4228pt>
+File: pic/psa_ga/03_surrogate_metric_summary.png Graphic file (type png)
+<use pic/psa_ga/03_surrogate_metric_summary.png>
+Package pdftex.def Info: pic/psa_ga/03_surrogate_metric_summary.png  used on in
+put line 118.
+(pdftex.def)             Requested size: 191.20082pt x 128.90399pt.
+
+Overfull \hbox (7.94727pt too wide) has occurred while \output is active
+ [][][][]  
+ []
+
+[5
+
+ <./pic/psa_ga/03_surrogate_metric_summary.png>]
+Overfull \hbox (7.94727pt too wide) in paragraph at lines 141--141
+ [][][][]  
+ []
+
+
+Overfull \hbox (7.94727pt too wide) has occurred while \output is active
+ [][][][]  
+ []
+
+[6
 
 ]
-<pic/psa_manifest/04_objective_tradeoff_pareto.png, id=181, 630.9171pt x 458.43
-27pt>
-File: pic/psa_manifest/04_objective_tradeoff_pareto.png Graphic file (type png)
+Overfull \hbox (7.94727pt too wide) in paragraph at lines 157--157
+ [][][][]  
+ []
 
-<use pic/psa_manifest/04_objective_tradeoff_pareto.png>
-Package pdftex.def Info: pic/psa_manifest/04_objective_tradeoff_pareto.png  use
-d on input line 122.
-(pdftex.def)             Requested size: 199.1693pt x 144.71484pt.
- [6
+<pic/psa_ga/04_ga_purity_recovery_front.png, id=212, 511.1898pt x 405.1938pt>
+File: pic/psa_ga/04_ga_purity_recovery_front.png Graphic file (type png)
+<use pic/psa_ga/04_ga_purity_recovery_front.png>
+Package pdftex.def Info: pic/psa_ga/04_ga_purity_recovery_front.png  used on in
+put line 157.
+(pdftex.def)             Requested size: 231.03711pt x 183.1269pt.
 
- <./pic/psa_manifest/04_objective_tradeoff_pareto.png>]
-<pic/psa_ml/01_regression_predicted_vs_simulated.png, id=212, 642.7212pt x 571.
-6557pt>
-File: pic/psa_ml/01_regression_predicted_vs_simulated.png Graphic file (type pn
+Overfull \hbox (7.94727pt too wide) has occurred while \output is active
+ [][][][]  
+ []
+
+[7
+
+ <./pic/psa_ga/04_ga_purity_recovery_front.png>]
+Overfull \hbox (7.94727pt too wide) in paragraph at lines 173--173
+ [][][][]  
+ []
+
+<pic/psa_ga/05_ga_productivity_energy_front.png, id=243, 539.8569pt x 407.3619p
+t>
+File: pic/psa_ga/05_ga_productivity_energy_front.png Graphic file (type png)
+<use pic/psa_ga/05_ga_productivity_energy_front.png>
+Package pdftex.def Info: pic/psa_ga/05_ga_productivity_energy_front.png  used o
+n input line 173.
+(pdftex.def)             Requested size: 231.03711pt x 174.33548pt.
+
+Overfull \hbox (7.94727pt too wide) has occurred while \output is active
+ [][][][]  
+ []
+
+[8
+
+ <./pic/psa_ga/05_ga_productivity_energy_front.png>]
+Overfull \hbox (7.94727pt too wide) in paragraph at lines 190--190
+ [][][][]  
+ []
+
+<pic/psa_ga/06_closed_loop_handoff_or_comparison.png, id=272, 567.5604pt x 357.
+7365pt>
+File: pic/psa_ga/06_closed_loop_handoff_or_comparison.png Graphic file (type pn
 g)
-<use pic/psa_ml/01_regression_predicted_vs_simulated.png>
-Package pdftex.def Info: pic/psa_ml/01_regression_predicted_vs_simulated.png  u
-sed on input line 151.
-(pdftex.def)             Requested size: 199.1693pt x 177.14165pt.
- [7
+<use pic/psa_ga/06_closed_loop_handoff_or_comparison.png>
+Package pdftex.def Info: pic/psa_ga/06_closed_loop_handoff_or_comparison.png  u
+sed on input line 190.
+(pdftex.def)             Requested size: 207.13776pt x 130.55908pt.
 
- <./pic/psa_ml/01_regression_predicted_vs_simulated.png>]
-<pic/psa_ml/02_model_metric_comparison.png, id=243, 678.8562pt x 406.8801pt>
-File: pic/psa_ml/02_model_metric_comparison.png Graphic file (type png)
-<use pic/psa_ml/02_model_metric_comparison.png>
-Package pdftex.def Info: pic/psa_ml/02_model_metric_comparison.png  used on inp
-ut line 166.
-(pdftex.def)             Requested size: 231.03711pt x 138.47398pt.
- [8
+Overfull \hbox (7.94727pt too wide) has occurred while \output is active
+ [][][][]  
+ []
 
- <./pic/psa_ml/02_model_metric_comparison.png>]
-<pic/psa_ml/05_classification_confusion_matrix.png, id=272, 420.6114pt x 335.33
-28pt>
-File: pic/psa_ml/05_classification_confusion_matrix.png Graphic file (type png)
+[9
 
-<use pic/psa_ml/05_classification_confusion_matrix.png>
-Package pdftex.def Info: pic/psa_ml/05_classification_confusion_matrix.png  use
-d on input line 193.
-(pdftex.def)             Requested size: 151.3706pt x 120.67877pt.
- [9
+ <./pic/psa_ga/06_closed_loop_handoff_or_comparison.png>]
+Overfull \hbox (7.94727pt too wide) in paragraph at lines 200--200
+ [][][][]  
+ []
 
- <./pic/psa_ml/05_classification_confusion_matrix.png>]
-<pic/psa_ml/03_feature_importance.png, id=301, 787.9839pt x 449.5194pt>
-File: pic/psa_ml/03_feature_importance.png Graphic file (type png)
-<use pic/psa_ml/03_feature_importance.png>
-Package pdftex.def Info: pic/psa_ml/03_feature_importance.png  used on input li
-ne 208.
-(pdftex.def)             Requested size: 223.06863pt x 127.2501pt.
- [10
 
- <./pic/psa_ml/03_feature_importance.png>]
-<pic/psa_ml/04_pca_operating_regimes.png, id=330, 555.2745pt x 432.8973pt>
-File: pic/psa_ml/04_pca_operating_regimes.png Graphic file (type png)
-<use pic/psa_ml/04_pca_operating_regimes.png>
-Package pdftex.def Info: pic/psa_ml/04_pca_operating_regimes.png  used on input
- line 223.
-(pdftex.def)             Requested size: 231.03711pt x 180.11801pt.
- [11
+Overfull \hbox (7.94727pt too wide) has occurred while \output is active
+ [][][][]  
+ []
 
- <./pic/psa_ml/04_pca_operating_regimes.png>] [12
-
-] [13
+[10
 
 ]
 \tf@nav=\write6
@@ -1005,31 +1006,32 @@ Package rerunfilecheck Info: File `slide.out' has not changed.
 (rerunfilecheck)             Checksum: D41D8CD98F00B204E9800998ECF8427E;0.
  ) 
 Here is how much of TeX's memory you used:
- 22205 strings out of 467871
- 425286 string characters out of 5428419
- 814647 words of memory out of 5000000
- 50599 multiletter control sequences out of 15000+600000
- 641289 words of font info for 76 fonts, out of 8000000 for 9000
+ 22025 strings out of 467871
+ 421575 string characters out of 5428419
+ 810740 words of memory out of 5000000
+ 50427 multiletter control sequences out of 15000+600000
+ 640549 words of font info for 72 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  128i,16n,123p,382b,618s stack positions out of 10000i,1000n,20000p,200000b,200000s
  <C:\Users\Administrator\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi
 600\ecbx1095.pk> <C:\Users\Administrator\AppData\Local\MiKTeX\fonts/pk/ljfour/j
-knappen/ec/dpi600\ecrm1200.pk> <C:\Users\Administrator\AppData\Local\MiKTeX\fon
-ts/pk/ljfour/jknappen/ec/dpi600\ecrm0600.pk> <C:\Users\Administrator\AppData\Lo
-cal\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm1000.pk> <C:\Users\Administra
-tor\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm0800.pk> <C:\Us
-ers\Administrator\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm1
-095.pk> <C:\Users\Administrator\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/e
-c/dpi600\ecrm1440.pk><D:/Program Files/MiKTeX/fonts/type1/public/amsfonts/cm/cm
-mi10.pfb><D:/Program Files/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi6.pfb><D:/
-Program Files/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi8.pfb><D:/Program Files
-/MiKTeX/fonts/type1/public/amsfonts/cm/cmr10.pfb><D:/Program Files/MiKTeX/fonts
-/type1/public/amsfonts/cm/cmr7.pfb><D:/Program Files/MiKTeX/fonts/type1/public/
-amsfonts/cm/cmr8.pfb><D:/Program Files/MiKTeX/fonts/type1/public/amsfonts/cm/cm
-sy10.pfb><D:/Program Files/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy8.pfb>
-Output written on slide.pdf (13 pages, 3030483 bytes).
+knappen/ec/dpi600\ectt1095.pk> <C:\Users\Administrator\AppData\Local\MiKTeX\fon
+ts/pk/ljfour/jknappen/ec/dpi600\ecrm1200.pk> <C:\Users\Administrator\AppData\Lo
+cal\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm0600.pk> <C:\Users\Administra
+tor\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm1000.pk> <C:\Us
+ers\Administrator\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm0
+800.pk> <C:\Users\Administrator\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/e
+c/dpi600\ecrm1095.pk> <C:\Users\Administrator\AppData\Local\MiKTeX\fonts/pk/ljf
+our/jknappen/ec/dpi600\ecrm1440.pk><D:/Program Files/MiKTeX/fonts/type1/public/
+amsfonts/cm/cmmi10.pfb><D:/Program Files/MiKTeX/fonts/type1/public/amsfonts/cm/
+cmmi8.pfb><D:/Program Files/MiKTeX/fonts/type1/public/amsfonts/cm/cmr10.pfb><D:
+/Program Files/MiKTeX/fonts/type1/public/amsfonts/cm/cmr6.pfb><D:/Program Files
+/MiKTeX/fonts/type1/public/amsfonts/cm/cmr8.pfb><D:/Program Files/MiKTeX/fonts/
+type1/public/amsfonts/cm/cmsy10.pfb><D:/Program Files/MiKTeX/fonts/type1/public
+/amsfonts/cm/cmsy8.pfb>
+Output written on slide.pdf (10 pages, 2366576 bytes).
 PDF statistics:
- 774 PDF objects out of 1000 (max. 8388607)
- 27 named destinations out of 1000 (max. 500000)
- 118 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 654 PDF objects out of 1000 (max. 8388607)
+ 21 named destinations out of 1000 (max. 500000)
+ 108 words of extra memory for PDF output out of 10000 (max. 10000000)
 

@@ -12,12 +12,12 @@
 \usepackage{hyperref}
 \usepackage{setspace}
 \geometry{margin=1in}
-\setstretch{1.25}
+\setstretch{1.22}
 
 \title{
     \vspace{-1.0cm}
-    \includegraphics[width=0.48\textwidth]{logo_hkust2.png}\\[0.8cm]
-    \textbf{\Large Machine-Learning-Assisted Analysis and Optimization of a PSA CO$_2$ Capture Process}\\[0.4cm]
+    \includegraphics[width=0.46\textwidth]{logo_hkust2.png}\\[0.8cm]
+    \textbf{\Large Surrogate-Assisted Genetic Optimization of a PSA CO$_2$ Capture Process}\\[0.4cm]
     \large SEEN5320 Final Project
 }
 \author{Your Name}
@@ -27,36 +27,33 @@
 \maketitle
 
 \begin{abstract}
-This project integrates machine learning with a pressure swing adsorption (PSA) simulation dataset for CO$_2$ capture. A Latin Hypercube Sampling (LHS) design generated 1000 successful PSA operating cases. For each case, the last-cycle spatiotemporal profiles of pressure, gas composition, adsorbed loadings, gas temperature, and wall temperature were stored. The project converts those profiles into 470 physics-informed features, trains supervised surrogate models for purity, recovery, productivity, and energy, classifies high-performance cases, and uses PCA/K-means clustering to identify operating regimes. The best regression surrogate used design plus profile features and achieved a mean test $R^2$ of 0.982 across the four targets. The best high-performance classifier achieved an F1 score of 0.976. The analysis shows a strong purity--recovery conflict and identifies the light-product reflux ratio and late-step outlet profile features as the most influential predictors.
+This project builds a closed optimization workflow for a pressure swing adsorption (PSA) CO$_2$ capture process using only the existing scalar simulation records in \texttt{data/manifest.csv}. Deleted time-space CSV files are not used. A manifest-only surrogate maps seven PSA operating variables to purity, recovery, productivity, and specific energy. The surrogate is then coupled with a Python implementation of NSGA-II to solve two bi-objective problems: purity versus recovery, and productivity versus energy. The optimized inputs and surrogate-predicted outputs are exported for detailed-model reruns through CSV files, completing the data handoff needed for closed-loop comparison.
 \end{abstract}
 
 \tableofcontents
 \newpage
 
-\section{Objective and Research Question}
-The objective is to use course-level machine learning methods to enhance interpretation and optimization of a PSA process simulation. The central research question is:
+\section{Objective and Workflow}
+The objective is to replace deleted-file-dependent analysis with a practical surrogate-assisted optimization workflow. The research route is:
+\begin{enumerate}
+    \item Train surrogate models from the 1000 successful rows in \texttt{manifest.csv}.
+    \item Use the surrogate inside a multi-objective genetic algorithm.
+    \item Export optimized decision variables to the detailed PSA model.
+    \item Compare detailed-model outputs against surrogate predictions after the detailed reruns are available.
+\end{enumerate}
 
-\begin{quote}
-Can machine learning transform a 1000-sample LHS PSA simulation dataset and its final-cycle spatiotemporal profiles into accurate surrogates and interpretable operating insights?
-\end{quote}
+The workflow is intentionally manifest-only. Auxiliary file-path columns in the manifest are ignored, and only scalar design variables and KPI outputs are read.
 
-The project is designed around three tasks: predicting PSA performance without rerunning the mechanistic simulator, classifying promising operating cases, and explaining how design variables and final-cycle profiles connect to performance tradeoffs.
-
-\section{Background and Literature Context}
-PSA is widely used for gas separation because cyclic pressure changes can exploit adsorption selectivity without requiring a continuous solvent regeneration loop. For CO$_2$/N$_2$ separation, however, purity, recovery, productivity, and energy consumption are tightly coupled. Improving one objective can degrade another, especially when reflux and blowdown choices change where the CO$_2$ front sits inside the bed at the end of a cycle.
-
-Classical PSA design relies on mechanistic cycle simulation and multi-objective search, building on adsorption process fundamentals \cite{ruthven1984adsorption}. This is physically meaningful but computationally expensive when many operating variables and cycle steps are explored. LHS is an established way to cover a simulation design space efficiently \cite{mckay1979lhs}. Machine learning offers a complementary route: regression models can approximate simulator outputs, classifiers can screen promising operating windows, and clustering/PCA can reveal regimes that are not obvious from a few scalar KPIs. The models used here connect to standard supervised-learning methods including random forests \cite{breiman2001random}, support vector machines \cite{cortes1995svm}, and neural-network regression \cite{bishop2006pattern}. This project therefore treats the simulator as the source of reliable labels and uses ML to extract reusable structure from the completed simulation campaign.
-
-\section{Data and Feature Engineering}
-\subsection{Simulation Dataset}
-The dataset contains 1000 successful samples. Each row in \texttt{data/manifest.csv} contains seven LHS design variables and four performance metrics. The adsorbent is Zeolite 13X, and the PSA cycle includes co-current pressurization, adsorption, heavy reflux, co-current depressurization, counter-current depressurization, and light reflux steps.
+\section{Data}
+The manifest contains 1000 successful Zeolite 13X PSA simulations. The seven decision variables are listed in Table \ref{tab:variables}; their bounds are read from \texttt{ProcessConfig.yaml}.
 
 \begin{table}[H]
 \centering
-\caption{LHS design variables used as ML inputs.}
+\caption{Design variables used by the surrogate and GA.}
+\label{tab:variables}
 \begin{tabular}{lll}
 \toprule
-Symbol & Meaning & Sampling range \\
+Variable & Meaning & Bound \\
 \midrule
 $x_1$ & Adsorption pressure & 100000--1000000 Pa \\
 $x_2$ & Adsorption time & 10--5000 s \\
@@ -69,126 +66,105 @@ $x_7$ & Counter-current depressurization time & 0--100 s \\
 \end{tabular}
 \end{table}
 
-The target outputs are CO$_2$ purity, CO$_2$ recovery, productivity in mol kg$^{-1}$ h$^{-1}$, and specific energy in kWh ton$^{-1}$. Energy was modeled as $\log_{10}(\mathrm{energy})$ during regression to reduce the influence of extreme high-energy cases.
-
-\subsection{Profile Features}
-For every sample, the final-cycle profile CSV stores values over time and axial bed position. The feature extraction script computes per-step means, ranges, standard deviations, final-step inlet and outlet values, final axial gradients, loading selectivity proxies, and gas-wall thermal lags for pressure, gas-phase CO$_2$, CO$_2$/N$_2$ loadings, gas temperature, and wall temperature. This produces 470 profile-derived features per sample and is saved as \texttt{data/profile\_features.csv}.
-
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.92\textwidth]{figures/psa_manifest/01_sampling_coverage_histograms.pdf}
-\caption{LHS coverage of the seven operating variables.}
+\includegraphics[width=0.92\textwidth]{figures/psa_ga/01_manifest_sampling_coverage.pdf}
+\caption{Manifest sampling coverage of the seven design variables.}
 \end{figure}
 
-\section{Machine Learning Methodology}
-The supervised regression task predicts purity, recovery, productivity, and log energy. Five regressors were evaluated: Ridge regression, random forest, gradient boosting, support vector regression, and a multilayer perceptron. Each was trained on two feature sets: design variables only, and design variables plus profile features. A fixed 80/20 train-test split with random seed 42 was used.
+The manifest output ranges are broad: purity spans 0.150--0.670, recovery spans 0.0056--1.000, productivity spans 0.243--115.45 mol kg$^{-1}$ h$^{-1}$, and energy spans 36.70--84378.80 kWh ton$^{-1}$.
 
-The classification task labels the top 20\% of samples by a balanced score:
-\[
-S = \frac{1}{4}\left[
-\hat{p} + \hat{r} + \widehat{\mathrm{prod}} + \left(1-\widehat{\log_{10} E}\right)
-\right],
-\]
-where hats denote min-max normalized values, $p$ is purity, $r$ is recovery, and $E$ is specific energy. Logistic regression, SVM, and random forest classifiers were compared.
+\section{Surrogate Model}
+The surrogate uses a degree-3 polynomial response surface in standardized design variables. A fixed 80/20 train-test split with random seed 42 is used. Ridge regularization is selected by five-fold cross-validation on the training set.
 
-For unsupervised analysis, PCA projects the combined design, KPI, and profile feature space into two dimensions, and K-means identifies four operating regimes. Pareto samples were computed using four objectives: maximize purity, recovery, and productivity, and minimize energy.
-
-\section{Results and Discussion}
-\subsection{Performance Tradeoffs}
-The LHS campaign reveals a strong purity--recovery conflict with Spearman correlation $-0.691$. There are 138 four-objective Pareto samples. The highest-purity case reaches purity 0.670, but its recovery is only 0.0056 and its energy is 84379 kWh ton$^{-1}$. In contrast, the best balanced-score case keeps recovery near 0.996 and productivity near 106.6 mol kg$^{-1}$ h$^{-1}$, but purity remains close to the inlet CO$_2$ fraction. This is an important negative result: within the sampled region, high productivity and high recovery do not automatically imply meaningful CO$_2$ enrichment.
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.92\textwidth]{figures/psa_manifest/04_objective_tradeoff_pareto.pdf}
-\caption{Four-objective Pareto samples projected onto productivity and specific energy.}
-\end{figure}
-
-\subsection{Surrogate Model Accuracy}
-Using only the seven design variables is useful, but adding final-cycle profile features substantially improves accuracy. The best model is Ridge regression with design plus profile features, achieving a mean test $R^2$ of 0.982. Per-target results are shown in Table \ref{tab:regression}.
+The regression targets are CO$_2$ recovery, productivity, and $\log_{10}$(specific energy). Purity is modeled as $\log_{10}(p - 0.15)$, where $p$ is CO$_2$ purity and 0.15 is the feed CO$_2$ fraction. This transformation improves the fit near feed-level purity. During optimization, predictions are clipped to the observed manifest output envelope to avoid reporting extrapolated KPI values outside the training data range.
 
 \begin{table}[H]
 \centering
-\caption{Best regression surrogate performance on the 20\% test set.}
-\label{tab:regression}
+\caption{Surrogate test-set accuracy. Energy is also evaluated in log space because the physical energy values are highly skewed.}
+\label{tab:surrogate-metrics}
 \begin{tabular}{lrrr}
 \toprule
 Target & RMSE & MAE & $R^2$ \\
 \midrule
-Purity & 0.00590 & 0.00356 & 0.98495 \\
-Recovery & 0.00935 & 0.00491 & 0.99892 \\
-Productivity & 1.70329 & 1.04535 & 0.99357 \\
-$\log_{10}$(energy) & 0.08965 & 0.05600 & 0.95237 \\
+Purity & 0.01658 & 0.00555 & 0.800 \\
+Recovery & 0.05016 & 0.02329 & 0.973 \\
+Productivity & 5.495 & 1.337 & 0.933 \\
+Energy & 1621.6 & 381.6 & 0.775 \\
+$\log_{10}$(energy) & 0.08166 & 0.05896 & 0.964 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.92\textwidth]{figures/psa_ml/01_regression_predicted_vs_simulated.pdf}
-\caption{Predicted versus simulated targets for the best surrogate.}
+\includegraphics[width=0.92\textwidth]{figures/psa_ga/02_surrogate_validation.pdf}
+\caption{Predicted versus simulated values on the held-out test set.}
 \end{figure}
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.88\textwidth]{figures/psa_ml/02_model_metric_comparison.pdf}
-\caption{Regression model comparison. Profile features consistently improve test-set accuracy.}
+\includegraphics[width=0.78\textwidth]{figures/psa_ga/03_surrogate_metric_summary.pdf}
+\caption{Test-set $R^2$ summary for the manifest-only surrogate.}
 \end{figure}
 
-\subsection{High-Performance Classification}
-The top 20\% balanced-score samples are treated as high-performance screening targets. Logistic regression is the best classifier, with accuracy 0.990, F1 score 0.976, and ROC-AUC 0.9995. This suggests that the high-performance region is separable once profile-informed features are included.
+\section{Genetic Algorithm Optimization}
+The surrogate is optimized with an in-house NumPy implementation of NSGA-II. The GA operates directly on the seven bounded design variables and uses the surrogate for fast KPI evaluation. The settings are:
+\begin{itemize}
+    \item Population size: 120.
+    \item Generations: 200.
+    \item Simulated binary crossover probability: 0.9.
+    \item Polynomial mutation probability: $1/7$ per variable.
+    \item Initial population: half manifest-seeded points and half random points inside the configured bounds.
+\end{itemize}
 
-\begin{table}[H]
-\centering
-\caption{High-performance classification results.}
-\begin{tabular}{lrrrrr}
-\toprule
-Model & Accuracy & Precision & Recall & F1 & ROC-AUC \\
-\midrule
-Logistic regression & 0.990 & 0.952 & 1.000 & 0.976 & 0.9995 \\
-Random forest & 0.950 & 0.941 & 0.800 & 0.865 & 0.9903 \\
-SVM & 0.925 & 0.736 & 0.975 & 0.839 & 0.9816 \\
-\bottomrule
-\end{tabular}
-\end{table}
+Two bi-objective optimization problems are solved:
+\[
+\max_x \left[purity(x), recovery(x)\right],
+\]
+and
+\[
+\max_x \left[productivity(x), -\log_{10}(energy(x))\right].
+\]
+The final nondominated set from each problem contains 120 surrogate Pareto candidates. Twenty representative candidates from each front are exported to \path{data/detailed_model_input.csv}.
+
+\section{Optimization Results}
+For the purity-recovery problem, the surrogate Pareto set covers predicted purity from 0.436 to 0.670 and recovery from 0.913 to 1.000. The corresponding productivity remains low, around 5.5--5.9 mol kg$^{-1}$ h$^{-1}$, showing the expected tradeoff between separation quality and throughput.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.55\textwidth]{figures/psa_ml/05_classification_confusion_matrix.pdf}
-\caption{Confusion matrix for the best high-performance classifier.}
+\includegraphics[width=0.82\textwidth]{figures/psa_ga/04_ga_purity_recovery_front.pdf}
+\caption{NSGA-II surrogate Pareto candidates for the purity-recovery problem.}
 \end{figure}
 
-\subsection{Interpretability and Operating Regimes}
-Random forest feature importance identifies the light-product reflux ratio $x_3$ as the dominant input. Several light-reflux-step outlet features are also important, including outlet gas temperature, outlet pressure, and final axial pressure and CO$_2$ gradients. This aligns with PSA intuition: reflux and late-cycle regeneration determine how much CO$_2$ remains in the bed and therefore shape the purity--recovery tradeoff.
+For the productivity-energy problem, the Pareto set spans productivity from 16.49 to 115.45 mol kg$^{-1}$ h$^{-1}$ and energy from 36.70 to 266.08 kWh ton$^{-1}$. These candidates stay close to feed-level purity, so this front is mainly useful for high-throughput, low-energy screening rather than CO$_2$ enrichment.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.88\textwidth]{figures/psa_ml/03_feature_importance.pdf}
-\caption{Top feature importances from the random forest surrogate.}
+\includegraphics[width=0.82\textwidth]{figures/psa_ga/05_ga_productivity_energy_front.pdf}
+\caption{NSGA-II surrogate Pareto candidates for the productivity-energy problem.}
 \end{figure}
 
-The PCA/K-means map separates the operating space into regimes with different KPI patterns. Most samples occupy broad low-to-medium performance regions, while small high-recovery pockets appear as distinct groups. The adsorption-step heatmaps show that representative operating points have visibly different CO$_2$ fronts, reinforcing why profile features improve the surrogate.
+\section{Closed-Loop Detailed-Model Interface}
+The closed-loop handoff is file based. The GA writes:
+\begin{itemize}
+    \item \path{data/ga_optimization_all.csv}: final GA populations for both problems.
+    \item \path{data/ga_optimization_nondominated.csv}: final nondominated candidates.
+    \item \path{data/detailed_model_input.csv}: 40 representative candidates for detailed PSA reruns.
+    \item \path{data/detailed_model_results_template.csv}: the expected detailed-model result format.
+\end{itemize}
+After detailed simulations are completed, their results should be saved as \path{data/detailed_model_results.csv}. The comparison script will then generate \path{data/detailed_model_comparison.csv} and error summaries.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.80\textwidth]{figures/psa_ml/04_pca_operating_regimes.pdf}
-\caption{Operating regimes from PCA and K-means clustering.}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.92\textwidth]{figures/psa_ml/06_adsorption_profile_heatmaps.pdf}
-\caption{Adsorption-step gas-phase CO$_2$ heatmaps for representative operating points.}
+\includegraphics[width=0.82\textwidth]{figures/psa_ga/06_closed_loop_handoff_or_comparison.pdf}
+\caption{Current closed-loop handoff candidates. This figure is replaced by prediction-versus-detailed comparisons when detailed results are available.}
 \end{figure}
 
 \section{Conclusions}
-This project demonstrates that ML can add measurable value after a mechanistic PSA simulation campaign. The design-only models already capture broad trends, but profile-derived features raise predictive performance and provide interpretable indicators tied to cycle physics. The main process insight is that the sampled operating space contains a severe purity--recovery tradeoff: very high purity is possible only with extremely low recovery and high energy, while balanced productivity and recovery cases remain close to feed-level purity. The resulting surrogate and classifier can be used as fast screening tools before running additional PSA simulations.
-
-Limitations remain. The analysis is restricted to one adsorbent and one sampled operating domain. The profile features are engineered summaries rather than sequence models, so they may miss detailed transient patterns. Future work should expand the design domain, include material variables, and test sequence models or physics-informed neural networks on the raw spatiotemporal fields.
+The project now follows a closed, manifest-only route: surrogate training, GA-based multi-objective optimization, candidate export, and detailed-model comparison. The surrogate is strongest for recovery, productivity, and log energy. Purity is harder to learn from the scalar manifest alone, so optimized purity candidates should be treated as screening points that require detailed-model confirmation. The two GA fronts reveal different operating regimes: purity-recovery optimization favors low-throughput enriched cases, while productivity-energy optimization favors feed-level purity with much higher throughput.
 
 \section*{AI Use Acknowledgement}
-Generative AI was used to assist with coding, figure generation, and English drafting. The simulation data, project interpretation, and final responsibility for the submitted work remain with the student.
-
-\bibliographystyle{plain}
-\bibliography{references}
+Generative AI was used to assist with code organization, figure generation, and report drafting. The data, interpretation, and final responsibility remain with the student.
 
 \end{document}

@@ -8,15 +8,19 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from psa_ml_utils import (
+from psa_surrogate_utils import (
     DATA_DIR,
-    METRIC_LABELS,
-    REGRESSION_TARGETS,
-    REPORT_ML_FIG_DIR,
-    SLIDE_ML_FIG_DIR,
+    DESIGN_COLS,
+    DESIGN_LABELS,
+    DESIGN_SHORT_LABELS,
+    PHYSICAL_TARGETS,
+    REPORT_GA_FIG_DIR,
+    SLIDE_GA_FIG_DIR,
+    TARGET_LABELS,
+    bounds_arrays,
     ensure_output_dirs,
     load_manifest,
-    profile_path,
+    variable_bounds,
 )
 
 
@@ -34,203 +38,215 @@ plt.rcParams.update(
 
 def save_dual(fig: plt.Figure, stem: str) -> None:
     ensure_output_dirs()
-    png = SLIDE_ML_FIG_DIR / f"{stem}.png"
-    pdf = REPORT_ML_FIG_DIR / f"{stem}.pdf"
-    fig.savefig(png, bbox_inches="tight")
-    fig.savefig(pdf, bbox_inches="tight")
-    print(f"Saved {png}")
-    print(f"Saved {pdf}")
+    png_path = SLIDE_GA_FIG_DIR / f"{stem}.png"
+    pdf_path = REPORT_GA_FIG_DIR / f"{stem}.pdf"
+    fig.savefig(png_path, bbox_inches="tight")
+    fig.savefig(pdf_path, bbox_inches="tight")
+    print(f"Saved {png_path}")
+    print(f"Saved {pdf_path}")
     plt.close(fig)
 
 
-def plot_regression_predictions() -> None:
-    pred = pd.read_csv(DATA_DIR / "regression_predictions.csv")
-    metrics = pd.read_csv(DATA_DIR / "regression_metrics.csv")
-    model = pred["model"].iloc[0]
-    feature_set = pred["feature_set"].iloc[0]
-    metric_lookup = metrics.loc[
-        metrics["model"].eq(model) & metrics["feature_set"].eq(feature_set)
-    ].set_index("target")
+def plot_sampling_coverage() -> None:
+    manifest = load_manifest()
+    bounds = variable_bounds(manifest).set_index("variable")
+    fig, axes = plt.subplots(3, 3, figsize=(12.5, 9.3))
+    axes = axes.ravel()
+    for ax, col in zip(axes, DESIGN_COLS):
+        ax.hist(manifest[col], bins=30, color="#4C78A8", alpha=0.85, edgecolor="white", linewidth=0.5)
+        ax.axvline(bounds.loc[col, "lower"], color="#C44E52", linestyle="--", linewidth=1.1)
+        ax.axvline(bounds.loc[col, "upper"], color="#C44E52", linestyle="--", linewidth=1.1)
+        ax.set_title(DESIGN_SHORT_LABELS[col])
+        ax.set_xlabel(DESIGN_LABELS[col])
+        ax.set_ylabel("Count")
+        ax.grid(alpha=0.2)
+    for ax in axes[len(DESIGN_COLS) :]:
+        ax.axis("off")
+    fig.suptitle("Manifest Sampling Coverage for the Seven Design Variables", y=1.01)
+    fig.tight_layout()
+    save_dual(fig, "01_manifest_sampling_coverage")
 
+
+def plot_surrogate_validation() -> None:
+    pred = pd.read_csv(DATA_DIR / "surrogate_predictions.csv")
+    metrics = pd.read_csv(DATA_DIR / "surrogate_metrics.csv")
+    test = pred.loc[pred["split"].eq("test")].copy()
+    metric_lookup = metrics.loc[metrics["split"].eq("test")].set_index("target")
+
+    panels = [
+        ("purity", "CO2 purity"),
+        ("recovery", "CO2 recovery"),
+        ("productivity_mol_kg_h", "Productivity"),
+        ("log_energy", "log10 specific energy"),
+    ]
     fig, axes = plt.subplots(2, 2, figsize=(10.5, 8.0))
     axes = axes.ravel()
-    for ax, target in zip(axes, REGRESSION_TARGETS):
-        x = pred[f"actual_{target}"]
-        y = pred[f"pred_{target}"]
-        ax.scatter(x, y, s=28, alpha=0.72, color="#2F6F9F", edgecolor="white", linewidth=0.3)
-        lo = min(x.min(), y.min())
-        hi = max(x.max(), y.max())
-        pad = 0.03 * (hi - lo if hi > lo else 1.0)
-        ax.plot([lo - pad, hi + pad], [lo - pad, hi + pad], color="#C44E52", linewidth=1.4)
+    for ax, (target, label) in zip(axes, panels):
+        actual = test[f"actual_{target}"]
+        predicted = test[f"pred_{target}"]
+        ax.scatter(actual, predicted, s=25, alpha=0.72, color="#2F6F9F", edgecolor="white", linewidth=0.25)
+        lo = float(min(actual.min(), predicted.min()))
+        hi = float(max(actual.max(), predicted.max()))
+        pad = 0.04 * (hi - lo if hi > lo else 1.0)
+        ax.plot([lo - pad, hi + pad], [lo - pad, hi + pad], color="#C44E52", linewidth=1.2)
         ax.set_xlim(lo - pad, hi + pad)
         ax.set_ylim(lo - pad, hi + pad)
-        label = METRIC_LABELS[target]
-        r2 = metric_lookup.loc[target, "r2"]
-        ax.set_title(f"{label} (R2={r2:.3f})")
-        ax.set_xlabel("Simulation")
-        ax.set_ylabel("ML prediction")
+        ax.set_title(f"{label} (test R2={metric_lookup.loc[target, 'r2']:.3f})")
+        ax.set_xlabel("Detailed simulation in manifest")
+        ax.set_ylabel("Surrogate prediction")
         ax.grid(alpha=0.25)
-    fig.suptitle(f"Best surrogate validation: {model} using {feature_set.replace('_', ' ')}", y=1.02)
-    save_dual(fig, "01_regression_predicted_vs_simulated")
+    fig.suptitle("Manifest-Only Surrogate Validation", y=1.02)
+    fig.tight_layout()
+    save_dual(fig, "02_surrogate_validation")
 
 
-def plot_model_comparison() -> None:
-    summary = pd.read_csv(DATA_DIR / "regression_metrics_summary.csv")
-    summary = summary.sort_values(["feature_set", "mean_r2"], ascending=[True, False])
-    labels = summary["model"] + "\n" + summary["feature_set"].str.replace("_", " ")
-    colors = np.where(summary["feature_set"].eq("design_plus_profile"), "#4C78A8", "#F58518")
+def plot_surrogate_metrics() -> None:
+    metrics = pd.read_csv(DATA_DIR / "surrogate_metrics.csv")
+    test = metrics.loc[metrics["split"].eq("test")].copy()
+    order = ["purity", "recovery", "productivity_mol_kg_h", "log_energy", "energy_kWh_ton"]
+    test["order"] = test["target"].map({target: idx for idx, target in enumerate(order)})
+    test = test.sort_values("order")
 
-    fig, ax = plt.subplots(figsize=(11.2, 5.4))
-    ax.bar(np.arange(len(summary)), summary["mean_r2"], color=colors, alpha=0.9)
-    ax.axhline(0, color="black", linewidth=0.8)
-    ax.set_xticks(np.arange(len(summary)))
-    ax.set_xticklabels(labels, rotation=35, ha="right")
-    ax.set_ylabel("Mean test R2 across four targets")
-    ax.set_title("Surrogate model comparison")
+    fig, ax = plt.subplots(figsize=(8.6, 4.8))
+    labels = [TARGET_LABELS.get(target, target) for target in test["target"]]
+    colors = ["#4C78A8" if target != "energy_kWh_ton" else "#F58518" for target in test["target"]]
+    ax.bar(np.arange(len(test)), test["r2"], color=colors, alpha=0.9)
+    ax.set_xticks(np.arange(len(test)))
+    ax.set_xticklabels(labels, rotation=25, ha="right")
+    ax.set_ylim(0.0, 1.05)
+    ax.set_ylabel("Test R2")
+    ax.set_title("Surrogate Accuracy by Output")
     ax.grid(axis="y", alpha=0.25)
-    ax.legend(
-        handles=[
-            plt.Rectangle((0, 0), 1, 1, color="#4C78A8", label="Design + profile features"),
-            plt.Rectangle((0, 0), 1, 1, color="#F58518", label="Design variables only"),
-        ],
-        loc="lower right",
-    )
-    save_dual(fig, "02_model_metric_comparison")
+    save_dual(fig, "03_surrogate_metric_summary")
 
 
-def plot_feature_importance() -> None:
-    importance = pd.read_csv(DATA_DIR / "feature_importance.csv").head(20)
-    importance = importance.iloc[::-1]
+def plot_purity_recovery_front() -> None:
+    manifest = load_manifest()
+    ga = pd.read_csv(DATA_DIR / "ga_optimization_nondominated.csv")
+    front = ga.loc[ga["problem"].eq("purity_recovery")].copy()
 
-    fig, ax = plt.subplots(figsize=(9.4, 7.0))
-    ax.barh(importance["feature"], importance["importance"], color="#54A24B", alpha=0.9)
-    ax.set_xlabel("Random forest feature importance")
-    ax.set_title("Top variables controlling surrogate predictions")
-    ax.grid(axis="x", alpha=0.25)
-    save_dual(fig, "03_feature_importance")
-
-
-def plot_pca_clusters() -> None:
-    clusters = pd.read_csv(DATA_DIR / "cluster_assignments.csv")
-    fig, ax = plt.subplots(figsize=(9.3, 6.7))
-    scatter = ax.scatter(
-        clusters["pc1"],
-        clusters["pc2"],
-        c=clusters["cluster"],
-        s=25 + 90 * clusters["balanced_score"],
-        cmap="tab10",
-        alpha=0.75,
+    fig, ax = plt.subplots(figsize=(8.4, 6.2))
+    ax.scatter(manifest["purity"], manifest["recovery"], s=16, alpha=0.28, color="#9AA0A6", label="Manifest samples")
+    sc = ax.scatter(
+        front["pred_purity"],
+        front["pred_recovery"],
+        c=front["pred_energy_kWh_ton"],
+        s=48,
+        cmap="viridis_r",
+        alpha=0.9,
         edgecolor="white",
-        linewidth=0.25,
+        linewidth=0.35,
+        label="GA surrogate Pareto candidates",
     )
-    high = clusters.loc[clusters["high_performer"].eq(1)]
-    ax.scatter(
-        high["pc1"],
-        high["pc2"],
-        facecolors="none",
-        edgecolors="black",
-        linewidth=0.8,
-        s=95,
-        label="Top 20% balanced score",
-    )
-    ax.set_xlabel("Principal component 1")
-    ax.set_ylabel("Principal component 2")
-    ax.set_title("Operating regimes from design, KPI, and profile features")
+    ax.set_xlabel("Predicted CO2 purity [-]")
+    ax.set_ylabel("Predicted CO2 recovery [-]")
+    ax.set_title("GA Front for Purity-Recovery Optimization")
     ax.grid(alpha=0.25)
     ax.legend(loc="best")
-    cbar = fig.colorbar(scatter, ax=ax, pad=0.01)
-    cbar.set_label("K-means regime")
-    save_dual(fig, "04_pca_operating_regimes")
+    cbar = fig.colorbar(sc, ax=ax, pad=0.01)
+    cbar.set_label("Predicted energy [kWh ton$^{-1}$]")
+    save_dual(fig, "04_ga_purity_recovery_front")
 
 
-def plot_classification_confusion() -> None:
-    cm = pd.read_csv(DATA_DIR / "classification_confusion_matrix.csv", index_col=0)
-    metrics = pd.read_csv(DATA_DIR / "classification_metrics.csv")
-    best = metrics.iloc[0]
-
-    fig, ax = plt.subplots(figsize=(5.7, 5.2))
-    im = ax.imshow(cm.to_numpy(), cmap="Blues")
-    for i in range(cm.shape[0]):
-        for j in range(cm.shape[1]):
-            ax.text(j, i, int(cm.iloc[i, j]), ha="center", va="center", color="black", fontsize=13)
-    ax.set_xticks([0, 1])
-    ax.set_xticklabels(["Predicted low", "Predicted high"])
-    ax.set_yticks([0, 1])
-    ax.set_yticklabels(["Actual low", "Actual high"])
-    ax.set_title(f"High-performance classifier: {best['model']} (F1={best['f1']:.3f})")
-    fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-    save_dual(fig, "05_classification_confusion_matrix")
-
-
-def _representative_samples(manifest: pd.DataFrame) -> list[tuple[str, int]]:
-    representatives = [
-        ("Balanced", int(manifest.loc[manifest["balanced_score"].idxmax(), "sample_id"])),
-        ("Highest purity", int(manifest.loc[manifest["purity"].idxmax(), "sample_id"])),
-        ("Highest recovery", int(manifest.loc[manifest["recovery"].idxmax(), "sample_id"])),
-        (
-            "Highest productivity",
-            int(manifest.loc[manifest["productivity_mol_kg_h"].idxmax(), "sample_id"]),
-        ),
-    ]
-    seen: set[int] = set()
-    unique: list[tuple[str, int]] = []
-    for label, sample_id in representatives:
-        if sample_id not in seen:
-            unique.append((label, sample_id))
-            seen.add(sample_id)
-    return unique
-
-
-def plot_profile_heatmaps() -> None:
+def plot_productivity_energy_front() -> None:
     manifest = load_manifest()
-    reps = _representative_samples(manifest)
-    fig, axes = plt.subplots(2, 2, figsize=(11.2, 8.2), constrained_layout=True)
-    axes = axes.ravel()
-    image = None
+    ga = pd.read_csv(DATA_DIR / "ga_optimization_nondominated.csv")
+    front = ga.loc[ga["problem"].eq("productivity_energy")].copy()
 
-    for ax, (label, sample_id) in zip(axes, reps):
-        row = manifest.loc[manifest["sample_id"].eq(sample_id)].iloc[0]
-        df = pd.read_csv(profile_path(row["profile_csv_path"]))
-        ads = df.loc[df["step_name"].eq("Ads")].copy()
-        if ads.empty:
-            ads = df.copy()
-        ads["t_norm"] = (ads["t_s"] - ads["t_s"].min()) / max(ads["t_s"].max() - ads["t_s"].min(), 1e-12)
-        pivot = (
-            ads.pivot_table(index="z", columns="t_norm", values="y_CO2", aggfunc="mean")
-            .sort_index()
-            .sort_index(axis=1)
-        )
-        extent = [0, 1, float(pivot.index.min()), float(pivot.index.max())]
-        image = ax.imshow(
-            pivot.to_numpy(),
-            origin="lower",
-            aspect="auto",
-            extent=extent,
-            cmap="viridis",
-            vmin=0.14,
-            vmax=max(0.35, float(pivot.max().max())),
-        )
-        ax.set_title(
-            f"{label}: sample {sample_id}\n"
-            f"purity={row['purity']:.3f}, recovery={row['recovery']:.3f}"
-        )
-        ax.set_xlabel("Normalized adsorption-step time")
-        ax.set_ylabel("Bed position z")
+    fig, ax = plt.subplots(figsize=(8.6, 6.2))
+    ax.scatter(
+        manifest["energy_kWh_ton"],
+        manifest["productivity_mol_kg_h"],
+        s=16,
+        alpha=0.28,
+        color="#9AA0A6",
+        label="Manifest samples",
+    )
+    sc = ax.scatter(
+        front["pred_energy_kWh_ton"],
+        front["pred_productivity_mol_kg_h"],
+        c=front["pred_purity"],
+        s=48,
+        cmap="plasma",
+        alpha=0.9,
+        edgecolor="white",
+        linewidth=0.35,
+        label="GA surrogate Pareto candidates",
+    )
+    ax.set_xscale("log")
+    ax.set_xlabel("Predicted specific energy [kWh ton$^{-1}$]")
+    ax.set_ylabel("Predicted productivity [mol kg$^{-1}$ h$^{-1}$]")
+    ax.set_title("GA Front for Productivity-Energy Optimization")
+    ax.grid(alpha=0.25)
+    ax.legend(loc="best")
+    cbar = fig.colorbar(sc, ax=ax, pad=0.01)
+    cbar.set_label("Predicted CO2 purity [-]")
+    save_dual(fig, "05_ga_productivity_energy_front")
 
-    for ax in axes[len(reps) :]:
-        ax.axis("off")
-    if image is not None:
-        fig.colorbar(image, ax=axes.tolist(), shrink=0.9, label="Gas-phase CO2 mole fraction")
-    save_dual(fig, "06_adsorption_profile_heatmaps")
+
+def plot_closed_loop_status() -> None:
+    comparison_path = DATA_DIR / "detailed_model_comparison.csv"
+    if comparison_path.exists():
+        comparison = pd.read_csv(comparison_path)
+        panels = [
+            ("purity", "CO2 purity"),
+            ("recovery", "CO2 recovery"),
+            ("productivity_mol_kg_h", "Productivity"),
+            ("energy_kWh_ton", "Specific energy"),
+        ]
+        fig, axes = plt.subplots(2, 2, figsize=(10.5, 8.0))
+        axes = axes.ravel()
+        for ax, (target, label) in zip(axes, panels):
+            x = comparison[f"{target}_detailed"]
+            y = comparison[f"pred_{target}"]
+            ax.scatter(x, y, s=35, alpha=0.75, color="#4C78A8", edgecolor="white", linewidth=0.3)
+            lo = float(min(x.min(), y.min()))
+            hi = float(max(x.max(), y.max()))
+            pad = 0.04 * (hi - lo if hi > lo else 1.0)
+            ax.plot([lo - pad, hi + pad], [lo - pad, hi + pad], color="#C44E52", linewidth=1.2)
+            ax.set_xlim(lo - pad, hi + pad)
+            ax.set_ylim(lo - pad, hi + pad)
+            ax.set_title(label)
+            ax.set_xlabel("Detailed model")
+            ax.set_ylabel("Surrogate")
+            ax.grid(alpha=0.25)
+        fig.suptitle("Closed-Loop Detailed-Model Comparison", y=1.02)
+        fig.tight_layout()
+        save_dual(fig, "06_closed_loop_handoff_or_comparison")
+        return
+
+    candidates = pd.read_csv(DATA_DIR / "detailed_model_input.csv")
+    bounds = variable_bounds(load_manifest())
+    lower, upper = bounds_arrays(bounds)
+    normalized = candidates[DESIGN_COLS].copy()
+    for idx, col in enumerate(DESIGN_COLS):
+        normalized[col] = (normalized[col] - lower[idx]) / (upper[idx] - lower[idx])
+
+    fig, ax = plt.subplots(figsize=(9.2, 5.6))
+    x_axis = np.arange(len(DESIGN_COLS))
+    colors = {"purity_recovery": "#4C78A8", "productivity_energy": "#F58518"}
+    for problem, group in candidates.groupby("problem"):
+        values = normalized.loc[group.index, DESIGN_COLS].to_numpy(float)
+        for row in values:
+            ax.plot(x_axis, row, color=colors.get(problem, "#666666"), alpha=0.28, linewidth=1.0)
+        ax.plot([], [], color=colors.get(problem, "#666666"), linewidth=2.0, label=problem.replace("_", " "))
+    ax.set_xticks(x_axis)
+    ax.set_xticklabels([DESIGN_SHORT_LABELS[col] for col in DESIGN_COLS])
+    ax.set_ylim(-0.03, 1.03)
+    ax.set_ylabel("Normalized variable value")
+    ax.set_title("Detailed-Model Handoff Candidates from GA")
+    ax.grid(alpha=0.25)
+    ax.legend(loc="best")
+    save_dual(fig, "06_closed_loop_handoff_or_comparison")
 
 
 def main() -> None:
-    plot_regression_predictions()
-    plot_model_comparison()
-    plot_feature_importance()
-    plot_pca_clusters()
-    plot_classification_confusion()
-    plot_profile_heatmaps()
+    plot_sampling_coverage()
+    plot_surrogate_validation()
+    plot_surrogate_metrics()
+    plot_purity_recovery_front()
+    plot_productivity_energy_front()
+    plot_closed_loop_status()
 
 
 if __name__ == "__main__":

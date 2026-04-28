@@ -5,15 +5,14 @@
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{hyperref}
-\usepackage{multicol}
 \usepackage{HKUSTstyle}
 \usefonttheme{serif}
 
-\graphicspath{{pic/}{pic/psa_manifest/}{pic/psa_ml/}}
+\graphicspath{{pic/}{pic/psa_ga/}}
 
 \author{Your Name}
-\title{Machine-Learning-Assisted PSA Simulation Analysis}
-\subtitle{\texorpdfstring{CO$_2$}{CO2} Capture from 1000 LHS Samples and Final-Cycle Profiles}
+\title{Surrogate-Assisted Genetic Optimization of a PSA Process}
+\subtitle{\texorpdfstring{Manifest-only CO$_2$ capture optimization with NSGA-II}{Manifest-only CO2 capture optimization with NSGA-II}}
 \institute{
     @connect.hkust-gz.edu.cn\\
     SEEN5320 Final Project\\
@@ -31,19 +30,20 @@
     \end{center}
 \end{frame}
 
-\begin{frame}{Project Question}
-\begin{block}{Research question}
-Can machine learning turn a PSA simulation campaign into accurate surrogates and interpretable operating guidance?
+\begin{frame}{Project Route}
+\begin{block}{Goal}
+Build a closed surrogate-assisted optimization workflow using only \texttt{data/manifest.csv}.
 \end{block}
 \begin{itemize}
-    \item System: four-step/extended-cycle PSA CO$_2$/N$_2$ separation with Zeolite 13X.
-    \item Data: 1000 successful LHS samples and final-cycle time-space profiles.
-    \item ML tasks: regression, high-performance classification, PCA/K-means regime discovery.
-    \item Goal: reduce simulator dependence while preserving physical interpretation.
+    \item Removed dependency: deleted time-space CSV files and derived features.
+    \item Surrogate inputs: seven PSA operating variables $x_1$--$x_7$.
+    \item Surrogate outputs: purity, recovery, productivity, and specific energy.
+    \item Optimizer: NSGA-II genetic algorithm coupled to the surrogate.
+    \item Closed loop: export optimized inputs for detailed-model reruns and compare returned outputs.
 \end{itemize}
 \end{frame}
 
-\begin{frame}{Dataset}
+\begin{frame}{Manifest Dataset}
 \begin{columns}[T,onlytextwidth]
 \begin{column}{0.45\textwidth}
 \begin{table}
@@ -55,168 +55,135 @@ Item & Value \\
 \midrule
 Successful simulations & 1000 \\
 Design variables & 7 \\
-Performance KPIs & 4 \\
-Profile fields & $P$, $y$, $q$, $T$, $T_w$ \\
-Profile features & 470 \\
-Pareto samples & 138 \\
+KPI outputs & 4 \\
+Derived time-space features & 0 \\
+Train/test split & 80/20 \\
 \bottomrule
 \end{tabular}
 \end{table}
+\begin{itemize}
+    \item Bounds are read from \texttt{ProcessConfig.yaml}.
+    \item Energy is modeled in log space because it is highly skewed.
+\end{itemize}
 \end{column}
-\begin{column}{0.48\textwidth}
-\includegraphics[width=\textwidth]{01_sampling_coverage_histograms.png}
+\begin{column}{0.52\textwidth}
+\includegraphics[width=\textwidth]{01_manifest_sampling_coverage.png}
 \end{column}
 \end{columns}
 \end{frame}
 
-\begin{frame}{From Profiles to ML Features}
+\begin{frame}{Surrogate Model}
 \begin{columns}[T,onlytextwidth]
-\begin{column}{0.50\textwidth}
+\begin{column}{0.46\textwidth}
 \begin{itemize}
-    \item Each CSV stores the last returned cycle over time and bed position.
-    \item For each PSA step, features summarize means, ranges, final inlet/outlet values, axial gradients, loading selectivity proxies, and gas-wall temperature lag.
-    \item These features connect scalar KPIs to the internal state of the bed.
+    \item Degree-3 ridge response surface in standardized design variables.
+    \item Purity target: $\log_{10}(purity - 0.15)$.
+    \item Other targets: recovery, productivity, and $\log_{10}(energy)$.
+    \item Ridge regularization selected by five-fold cross-validation.
+    \item Output predictions clipped to the observed manifest range before GA search.
 \end{itemize}
 \end{column}
-\begin{column}{0.48\textwidth}
-\includegraphics[width=\textwidth]{06_adsorption_profile_heatmaps.png}
-\end{column}
-\end{columns}
-\end{frame}
-
-\begin{frame}{Machine Learning Workflow}
-\begin{columns}[T,onlytextwidth]
-\begin{column}{0.48\textwidth}
-\textbf{Supervised learning}
-\begin{itemize}
-    \item Regression targets: purity, recovery, productivity, $\log_{10}$(energy).
-    \item Models: Ridge, random forest, gradient boosting, SVR, MLP.
-    \item Validation: fixed 80/20 train-test split.
-\end{itemize}
-\end{column}
-\begin{column}{0.48\textwidth}
-\textbf{Screening and interpretation}
-\begin{itemize}
-    \item Classify top 20\% balanced-score samples.
-    \item Compute four-objective Pareto set.
-    \item Use PCA/K-means to identify operating regimes.
-\end{itemize}
-\end{column}
-\end{columns}
-\end{frame}
-
-\begin{frame}{Key Tradeoff: Purity vs Recovery}
-\begin{columns}[T,onlytextwidth]
-\begin{column}{0.50\textwidth}
-\includegraphics[width=\textwidth]{04_objective_tradeoff_pareto.png}
-\end{column}
-\begin{column}{0.47\textwidth}
-\begin{itemize}
-    \item Spearman correlation between purity and recovery: $-0.691$.
-    \item Highest purity: 0.670, but recovery is only 0.0056 and energy is 84379 kWh ton$^{-1}$.
-    \item Best balanced case: recovery 0.996 and productivity 106.6 mol kg$^{-1}$ h$^{-1}$, but purity remains near feed level.
-    \item This is the central process limitation in the sampled domain.
-\end{itemize}
+\begin{column}{0.52\textwidth}
+\includegraphics[width=\textwidth]{02_surrogate_validation.png}
 \end{column}
 \end{columns}
 \end{frame}
 
 \begin{frame}{Surrogate Accuracy}
 \begin{columns}[T,onlytextwidth]
-\begin{column}{0.50\textwidth}
-\includegraphics[width=\textwidth]{01_regression_predicted_vs_simulated.png}
+\begin{column}{0.48\textwidth}
+\includegraphics[width=\textwidth]{03_surrogate_metric_summary.png}
 \end{column}
-\begin{column}{0.47\textwidth}
-\begin{table}
-\centering
-\small
-\begin{tabular}{lcc}
-\toprule
-Target & RMSE & $R^2$ \\
-\midrule
-Purity & 0.00590 & 0.985 \\
-Recovery & 0.00935 & 0.999 \\
-Productivity & 1.703 & 0.994 \\
-$\log_{10}$(energy) & 0.0897 & 0.952 \\
-\bottomrule
-\end{tabular}
-\end{table}
-\begin{itemize}
-    \item Best model: Ridge.
-    \item Best feature set: design + profile features.
-    \item Mean test $R^2$: 0.982.
-\end{itemize}
-\end{column}
-\end{columns}
-\end{frame}
-
-\begin{frame}{Model Comparison}
-\begin{columns}[T,onlytextwidth]
-\begin{column}{0.58\textwidth}
-\includegraphics[width=\textwidth]{02_model_metric_comparison.png}
-\end{column}
-\begin{column}{0.39\textwidth}
-\begin{itemize}
-    \item Profile features improve every model family.
-    \item Linear Ridge works best because final-cycle profiles already encode much of the nonlinear simulator response.
-    \item Design-only models are weaker, especially for energy and purity.
-\end{itemize}
-\end{column}
-\end{columns}
-\end{frame}
-
-\begin{frame}{High-Performance Screening}
-\begin{columns}[T,onlytextwidth]
-\begin{column}{0.38\textwidth}
-\includegraphics[width=\textwidth]{05_classification_confusion_matrix.png}
-\end{column}
-\begin{column}{0.54\textwidth}
+\begin{column}{0.49\textwidth}
 \begin{table}
 \centering
 \scriptsize
-\begin{tabular}{lccc}
+\begin{tabular}{lcc}
 \toprule
-Classifier & Accuracy & F1 & ROC-AUC \\
+Target & RMSE & Test $R^2$ \\
 \midrule
-Logistic reg. & 0.990 & 0.976 & 0.9995 \\
-Random forest & 0.950 & 0.865 & 0.9903 \\
-SVM & 0.925 & 0.839 & 0.9816 \\
+Purity & 0.0166 & 0.800 \\
+Recovery & 0.0502 & 0.973 \\
+Productivity & 5.50 & 0.933 \\
+$\log_{10}$(energy) & 0.0817 & 0.964 \\
 \bottomrule
 \end{tabular}
 \end{table}
 \begin{itemize}
-    \item Positive class: top 20\% by balanced score.
-    \item The high-performance region is highly separable with profile-informed features.
+    \item Purity is the hardest scalar-output target.
+    \item Recovery, productivity, and log-energy are reliable enough for screening.
 \end{itemize}
 \end{column}
 \end{columns}
 \end{frame}
 
-\begin{frame}{What Controls the Surrogate?}
+\begin{frame}{GA Optimization Setup}
 \begin{columns}[T,onlytextwidth]
-\begin{column}{0.56\textwidth}
-\includegraphics[width=\textwidth]{03_feature_importance.png}
-\end{column}
-\begin{column}{0.41\textwidth}
+\begin{column}{0.48\textwidth}
+\textbf{NSGA-II settings}
 \begin{itemize}
-    \item Dominant variable: light-product reflux ratio $x_3$.
-    \item Late light-reflux outlet temperature and pressure are also important.
-    \item Final pressure and CO$_2$ gradients encode how regenerated the bed is before the next cycle.
+    \item Population size: 120.
+    \item Generations: 200.
+    \item Simulated binary crossover: 0.9.
+    \item Polynomial mutation: $1/7$ per variable.
+    \item Initial population: manifest-seeded plus random points.
+\end{itemize}
+\end{column}
+\begin{column}{0.48\textwidth}
+\textbf{Two bi-objective fronts}
+\begin{itemize}
+    \item Maximize purity and recovery.
+    \item Maximize productivity and minimize energy.
+    \item Export 20 representative candidates per front for detailed-model reruns.
 \end{itemize}
 \end{column}
 \end{columns}
 \end{frame}
 
-\begin{frame}{Operating Regimes}
+\begin{frame}{Front 1: Purity vs Recovery}
 \begin{columns}[T,onlytextwidth]
 \begin{column}{0.58\textwidth}
-\includegraphics[width=\textwidth]{04_pca_operating_regimes.png}
+\includegraphics[width=\textwidth]{04_ga_purity_recovery_front.png}
 \end{column}
 \begin{column}{0.39\textwidth}
 \begin{itemize}
-    \item PCA uses design, KPI, and profile features.
-    \item K-means separates broad low-to-medium performance regions from small high-recovery pockets.
-    \item High balanced-score samples concentrate in limited zones instead of spanning the whole design space.
+    \item Predicted purity range: 0.436--0.670.
+    \item Predicted recovery range: 0.913--1.000.
+    \item Productivity remains low: about 5.5--5.9 mol kg$^{-1}$ h$^{-1}$.
+    \item These candidates are separation-quality screening points.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Front 2: Productivity vs Energy}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.58\textwidth}
+\includegraphics[width=\textwidth]{05_ga_productivity_energy_front.png}
+\end{column}
+\begin{column}{0.39\textwidth}
+\begin{itemize}
+    \item Predicted productivity range: 16.49--115.45 mol kg$^{-1}$ h$^{-1}$.
+    \item Predicted energy range: 36.70--266.08 kWh ton$^{-1}$.
+    \item Purity remains near feed level.
+    \item This front is mainly a throughput-energy tradeoff.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Closed-Loop Handoff}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.52\textwidth}
+\includegraphics[width=\textwidth]{06_closed_loop_handoff_or_comparison.png}
+\end{column}
+\begin{column}{0.45\textwidth}
+\begin{itemize}
+    \item Full final GA populations are saved as CSV.
+    \item Surrogate Pareto candidates are saved separately.
+    \item Forty rerun inputs are exported for the detailed model.
+    \item A result template defines the expected return format.
+    \item The comparison script computes errors after detailed results are saved.
 \end{itemize}
 \end{column}
 \end{columns}
@@ -224,24 +191,12 @@ SVM & 0.925 & 0.839 & 0.9816 \\
 
 \begin{frame}{Conclusions}
 \begin{itemize}
-    \item ML surrogates can reproduce PSA simulation outputs accurately from one completed LHS campaign.
-    \item Final-cycle profile features are valuable because they expose internal bed states that design variables alone miss.
-    \item The sampled design space shows a severe purity-recovery-energy conflict.
-    \item Practical next step: expand the domain with material variables and optimize around purity constraints, not only balanced KPI score.
+    \item The project now uses only existing manifest data for surrogate training.
+    \item NSGA-II turns the surrogate into two explicit multi-objective design fronts.
+    \item Output clipping prevents the GA from reporting values outside the manifest training envelope.
+    \item Purity-optimized candidates require detailed-model confirmation because purity is the weakest surrogate target.
+    \item The CSV handoff completes the closed-loop structure for surrogate-versus-detailed comparison.
 \end{itemize}
-\vspace{0.4cm}
-\small Generative AI was used to assist coding, figure generation, and English drafting.
-\end{frame}
-
-\begin{frame}
-\begin{center}
-\Large Thank you
-\vspace{1cm}
-
-\normalsize
-Your Name\\
-@connect.hkust-gz.edu.cn
-\end{center}
 \end{frame}
 
 \end{document}
