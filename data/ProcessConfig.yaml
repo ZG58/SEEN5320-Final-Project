@@ -1,0 +1,97 @@
+# ProcessConfig.yaml
+# PSA 模拟/优化全局配置（物性常数、经济参数、优化设置）
+
+# ============================================================
+# 模拟设置
+# ============================================================
+simulation_settings:
+  N:                       20           # 有限体积数
+  type:                    EconomicEvaluationRin  # ProcessEvaluation | EconomicEvaluation | EconomicEvaluationRin
+  active_material_index:   16           # 使用的材料编号（1-based）
+  L:                       1.0         # 吸附塔长度 [m] （注意：通常由 process_vars 传入）
+  verbose:                 false         # 是否打印仿真过程信息 [true/false]
+
+# ============================================================
+# 烟气与物性常数
+# ============================================================
+physical_constants:
+  R:          8.314        # 通用气体常数 [J/mol/K]
+  T_0:        298.15       # 烟气进料温度 [K]
+  y_0:        0.15         # 入口气体CO2摩尔分数 [-]
+  mu:         1.72e-5      # 气体粘度 [Pa·s]
+  epsilon:    0.37         # 空隙率 [-]
+  D_m:        1.2995e-5    # 分子扩散系数 [m^2/s]
+  K_z:        0.09         # 气相热导率 [W/m/K]
+  C_pg:       30.7         # 气体比热 [J/mol/K]
+  C_pa:       30.7         # 吸附相比热 [J/mol/K]
+  MW_CO2:     0.04402      # CO2分子量 [kg/mol]
+  MW_N2:      0.02802      # N2分子量 [kg/mol]
+  feed_gas:   Constant Velocity  # Constant Pressure | Constant Velocity
+
+thermal_settings:
+  thermal_model: nonadiabatic        # Thermal model: adiabatic | nonadiabatic
+  column_radius_m: 0.1            # Column inner radius r_i [m]
+  column_outer_radius_m: 0.102    # Column outer radius r_o [m]
+  initial_wall_temperature_K: 298 # Initial wall temperature T_w [K]
+  wall_temperature_K: 298         # Legacy alias for initial_wall_temperature_K [K]
+  ambient_temperature_K: 298      # Ambient temperature T_a [K]
+  h_in_W_m2_K: 8.6                # Bed-to-inner-wall heat transfer coefficient h_in [W/m^2/K]
+  h_out_W_m2_K: 2.5               # Outer-wall-to-ambient heat transfer coefficient h_out [W/m^2/K]
+  rho_w_kg_m3: 7800               # Column wall density rho_w [kg/m^3]
+  C_pw_J_kg_K: 502                # Column wall heat capacity C_pw [J/kg/K]
+  K_w_W_m_K: 16                   # Column wall thermal conductivity K_w [W/m/K]
+
+# ============================================================
+# 吸附剂床层参数（材料无关的固定值）
+# ============================================================
+adsorbent_bed:
+  r_p:        1.0e-3       # 颗粒半径 [m]
+  C_ps:       1070         # 吸附剂比热容 [J/kg/K]
+  q_s:        5.84         # 摩尔负载量比例因子 [mol/kg]
+  k_CO2_LDF:  0.1631       # CO2传质系数 [1/s]
+  k_N2_LDF:   0.2044       # N2传质系数 [1/s]
+  ldf_mode:   fixed        # fixed | local
+  epsilon_p:  0.39         # placeholder particle porosity [-]
+  D_p_1:      5.421e-6     # placeholder pore diffusivity for component 1 [m^2/s]
+  D_p_2:      6.145e-6     # placeholder pore diffusivity for component 2 [m^2/s]
+  tau:        0.5          # 压力变化速度参数 [-]
+  P_inlet:    1.02         # 吸附步骤入口进料气压力 [-]
+
+# ============================================================
+# 经济参数
+# ============================================================
+economic_params:
+  desired_flow:            0.01667      # 每塔烟气期望流速 [mol/s]
+  electricity_cost:        0.07         # 电价 [$/kWh]
+  hour_to_year_conversion: 8000         # 年运行小时数 [hr/year]
+  life_span_equipment:     20           # 设备寿命（除吸附剂）[年]
+  life_span_adsorbent:     5            # 吸附剂寿命 [年]
+  CEPCI:                   536.4        # 化工装置费用指数（2016年1月）
+
+# ============================================================
+# NSGA-II 优化设置
+# ============================================================
+optimization_settings:
+  popsize:      100
+  poolsize:     100
+  maxGen:       100
+  numObj:       2
+  numVar:       10
+  numCons:      3
+  useParallel:  yes
+  lb:   [ 100000,   10, 0.0,  0.1,   10000,   0,   0]
+  ub:   [1000000, 5000, 1.0,  1.0,  100000, 100, 100]
+
+# x(1)                                    % 吸附压力 [Pa]
+# x(2)                                    % 吸附步骤的时间 [s]
+# x(3)                                    % 轻组分产品回流比 [-]
+# x(4)                                    % 进料速度 [m/s]
+# x(5)                                    % 吹扫压力 [Pa]
+# x(6)                                    % 加压步骤时间 [s]
+# x(7)                                    % 逆流降压步骤时间 [s]
+
+# ============================================================
+# 材料等温线参数
+# ============================================================
+# 材料等温线和物性参数存于 data/Adsorbents.csv，由调用方通过 readmatrix 读取。
+# CSV 格式：第1列 material_name, 第2-14列 IsothermPar, 第15-17列 SimParam

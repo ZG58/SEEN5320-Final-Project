@@ -1,0 +1,7 @@
+key,value
+n_samples,1000.0
+n_train,800.0
+n_test,200.0
+degree,3.0
+n_basis_terms,120.0
+mean_test_r2_physical_targets,0.8702001887722084
