@@ -1,3 +1,6 @@
+\makeatletter
+\def\input@path{{slide/}}
+\makeatother
 \documentclass[aspectratio=169]{beamer}
 
 \usepackage[T1]{fontenc}
@@ -8,11 +11,11 @@
 \usepackage{HKUSTstyle}
 \usefonttheme{serif}
 
-\graphicspath{{pic/}{pic/psa_ga/}}
+\graphicspath{{pic/}{pic/psa_scalar/}{slide/pic/}{slide/pic/psa_scalar/}}
 
 \author{Your Name}
-\title{Surrogate-Assisted Genetic Optimization of a PSA Process}
-\subtitle{\texorpdfstring{Manifest-only CO$_2$ capture optimization with NSGA-II}{Manifest-only CO2 capture optimization with NSGA-II}}
+\title{Machine-Learning Surrogate Optimization of a VPSA Process}
+\subtitle{\texorpdfstring{SEEN5320 Final Project: CO$_2$ capture from dry flue gas}{SEEN5320 Final Project: CO2 capture from dry flue gas}}
 \institute{
     @connect.hkust-gz.edu.cn\\
     SEEN5320 Final Project\\
@@ -24,7 +27,7 @@
 
 \begin{frame}
     \titlepage
-    \vspace*{-0.5cm}
+    \vspace*{-0.6cm}
     \begin{center}
         \includegraphics[keepaspectratio,scale=0.025]{UST.png}
     \end{center}
@@ -32,158 +35,194 @@
 
 \begin{frame}{Project Route}
 \begin{block}{Goal}
-Build a closed surrogate-assisted optimization workflow using only \texttt{data/manifest.csv}.
+Use successful gPROMS VPSA simulations to train a fast surrogate and optimize process KPIs.
 \end{block}
 \begin{itemize}
-    \item Removed dependency: deleted time-space CSV files and derived features.
-    \item Surrogate inputs: seven PSA operating variables $x_1$--$x_7$.
-    \item Surrogate outputs: purity, recovery, productivity, and specific energy.
-    \item Optimizer: NSGA-II genetic algorithm coupled to the surrogate.
-    \item Closed loop: export optimized inputs for detailed-model reruns and compare returned outputs.
+    \item Source data: \texttt{data/raw\_data.mat}.
+    \item Successful simulations: 1708 rows from an original 2000-point LHS design.
+    \item Inputs: FAD, FRP, FVU, TRP, TED, and TPR.
+    \item Outputs: recovery, purity, productivity, and specific energy.
+    \item Method: tune multiple ML models, select the best Pareto-aware surrogate, then run NSGA-II.
 \end{itemize}
 \end{frame}
 
-\begin{frame}{Manifest Dataset}
+\begin{frame}{Literature Basis}
 \begin{columns}[T,onlytextwidth]
-\begin{column}{0.45\textwidth}
-\begin{table}
-\centering
-\scriptsize
-\begin{tabular}{ll}
+\begin{column}{0.52\textwidth}
+\small
+\begin{itemize}
+    \item Wang et al. studied a 3-bed 7-step VPSA process for CO$_2$/N$_2$ dry flue gas capture.
+    \item Their ANN surrogate enabled multi-objective optimization without repeatedly solving the full PDAE model.
+    \item This project reproduces that idea with the available scalar simulation data.
+\end{itemize}
+\end{column}
+\begin{column}{0.44\textwidth}
+\fbox{\parbox[c][3.2cm][c]{0.92\textwidth}{\centering Placeholder for literature process schematic and ANN workflow}}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Data Conversion}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.48\textwidth}
+\small
+\begin{tabular}{lr}
 \toprule
 Item & Value \\
 \midrule
-Successful simulations & 1000 \\
-Design variables & 7 \\
-KPI outputs & 4 \\
-Derived time-space features & 0 \\
-Train/test split & 80/20 \\
+\texttt{invar} shape & $1708 \times 6$ \\
+\texttt{result\_matrix} shape & $1708 \times 284$ \\
+KPI columns used & first 4 \\
+CSV rows & 1708 \\
+CSV columns & 12 \\
 \bottomrule
 \end{tabular}
-\end{table}
+\vspace{0.3cm}
+
 \begin{itemize}
-    \item Bounds are read from \texttt{ProcessConfig.yaml}.
-    \item Energy is modeled in log space because it is highly skewed.
+    \item Failed simulations are absent from the MAT file.
+    \item Remaining profile outputs are ignored in this scalar surrogate version.
 \end{itemize}
 \end{column}
-\begin{column}{0.52\textwidth}
-\includegraphics[width=\textwidth]{01_manifest_sampling_coverage.png}
+\begin{column}{0.50\textwidth}
+\includegraphics[width=\textwidth]{01_sampling_coverage.png}
 \end{column}
 \end{columns}
 \end{frame}
 
-\begin{frame}{Surrogate Model}
-\begin{columns}[T,onlytextwidth]
-\begin{column}{0.46\textwidth}
-\begin{itemize}
-    \item Degree-3 ridge response surface in standardized design variables.
-    \item Purity target: $\log_{10}(purity - 0.15)$.
-    \item Other targets: recovery, productivity, and $\log_{10}(energy)$.
-    \item Ridge regularization selected by five-fold cross-validation.
-    \item Output predictions clipped to the observed manifest range before GA search.
-\end{itemize}
-\end{column}
-\begin{column}{0.52\textwidth}
-\includegraphics[width=\textwidth]{02_surrogate_validation.png}
-\end{column}
-\end{columns}
-\end{frame}
-
-\begin{frame}{Surrogate Accuracy}
+\begin{frame}{KPI Landscape}
 \begin{columns}[T,onlytextwidth]
 \begin{column}{0.48\textwidth}
-\includegraphics[width=\textwidth]{03_surrogate_metric_summary.png}
+\includegraphics[width=\textwidth]{02_kpi_distributions.png}
 \end{column}
-\begin{column}{0.49\textwidth}
-\begin{table}
-\centering
-\scriptsize
-\begin{tabular}{lcc}
+\begin{column}{0.50\textwidth}
+\includegraphics[width=\textwidth]{03_empirical_pareto_sets.png}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Surrogate Model Benchmark}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.46\textwidth}
+\small
+\begin{itemize}
+    \item Same fixed 80/20 train-test split.
+    \item 3-fold CV hyperparameter search on training data.
+    \item Energy modeled in log space.
+    \item Selection score = 0.6 Pareto NRMSE + 0.4 global NRMSE.
+\end{itemize}
+\vspace{0.2cm}
+\begin{tabular}{lrr}
+\toprule
+Model & Score & $R^2$ \\
+\midrule
+RBF SVR & 0.00288 & 0.99978 \\
+RBF KRR & 0.00301 & 0.99977 \\
+Poly ridge & 0.00395 & 0.99983 \\
+MLP & 0.01411 & 0.99725 \\
+\bottomrule
+\end{tabular}
+\end{column}
+\begin{column}{0.52\textwidth}
+\includegraphics[width=\textwidth]{04_model_comparison.png}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Best Surrogate}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.48\textwidth}
+\includegraphics[width=\textwidth]{05_best_model_validation.png}
+\end{column}
+\begin{column}{0.50\textwidth}
+\small
+\begin{block}{Selected model}
+RBF SVR with $C=100$, $\epsilon=0.001$, and $\gamma=0.1$.
+\end{block}
+\begin{tabular}{lrr}
 \toprule
 Target & RMSE & Test $R^2$ \\
 \midrule
-Purity & 0.0166 & 0.800 \\
-Recovery & 0.0502 & 0.973 \\
-Productivity & 5.50 & 0.933 \\
-$\log_{10}$(energy) & 0.0817 & 0.964 \\
+Recovery & 0.00122 & 0.99996 \\
+Purity & 0.00035 & 0.99995 \\
+Productivity & 0.00064 & 0.99995 \\
+Energy & 22.74 & 0.99826 \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{NSGA-II Setup}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.50\textwidth}
+\small
+\begin{block}{Problem 1}
+\[
+\max(\mathrm{purity},\mathrm{recovery})
+\]
+\end{block}
+\begin{block}{Problem 2}
+\[
+\max \mathrm{productivity},\quad \min \mathrm{energy}
+\]
+\[
+\mathrm{purity}\ge0.70,\quad \mathrm{recovery}\ge0.90
+\]
+\end{block}
+\end{column}
+\begin{column}{0.47\textwidth}
+\small
 \begin{itemize}
-    \item Purity is the hardest scalar-output target.
-    \item Recovery, productivity, and log-energy are reliable enough for screening.
+    \item Population size: 160.
+    \item Generations: 250.
+    \item Operators: simulated binary crossover and polynomial mutation.
+    \item Ranking: constrained nondominated sorting plus crowding distance.
 \end{itemize}
 \end{column}
 \end{columns}
 \end{frame}
 
-\begin{frame}{GA Optimization Setup}
+\begin{frame}{Optimization Fronts}
+\includegraphics[width=0.94\textwidth]{06_optimization_fronts.png}
+\end{frame}
+
+\begin{frame}{Optimization Results}
 \begin{columns}[T,onlytextwidth]
 \begin{column}{0.48\textwidth}
-\textbf{NSGA-II settings}
+\small
+\begin{block}{Purity-recovery front}
 \begin{itemize}
-    \item Population size: 120.
-    \item Generations: 200.
-    \item Simulated binary crossover: 0.9.
-    \item Polynomial mutation: $1/7$ per variable.
-    \item Initial population: manifest-seeded plus random points.
+    \item Purity range: 0.719--0.918.
+    \item Recovery range: 0.349--0.935.
+    \item Maximum recovery point: purity 0.719, recovery 0.935, energy 1139 kJ kgCO$_2^{-1}$.
 \end{itemize}
+\end{block}
 \end{column}
 \begin{column}{0.48\textwidth}
-\textbf{Two bi-objective fronts}
+\small
+\begin{block}{Productivity-energy front}
 \begin{itemize}
-    \item Maximize purity and recovery.
-    \item Maximize productivity and minimize energy.
-    \item Export 20 representative candidates per front for detailed-model reruns.
+    \item All nondominated candidates satisfy the constraints.
+    \item Productivity range: 0.485--0.504 mol h$^{-1}$ kg$^{-1}$.
+    \item Energy range: 961--1003 kJ kgCO$_2^{-1}$.
 \end{itemize}
+\end{block}
 \end{column}
 \end{columns}
 \end{frame}
 
-\begin{frame}{Front 1: Purity vs Recovery}
+\begin{frame}{Representative Conditions}
 \begin{columns}[T,onlytextwidth]
-\begin{column}{0.58\textwidth}
-\includegraphics[width=\textwidth]{04_ga_purity_recovery_front.png}
+\begin{column}{0.57\textwidth}
+\includegraphics[width=\textwidth]{07_representative_conditions.png}
 \end{column}
-\begin{column}{0.39\textwidth}
+\begin{column}{0.40\textwidth}
+\small
 \begin{itemize}
-    \item Predicted purity range: 0.436--0.670.
-    \item Predicted recovery range: 0.913--1.000.
-    \item Productivity remains low: about 5.5--5.9 mol kg$^{-1}$ h$^{-1}$.
-    \item These candidates are separation-quality screening points.
-\end{itemize}
-\end{column}
-\end{columns}
-\end{frame}
-
-\begin{frame}{Front 2: Productivity vs Energy}
-\begin{columns}[T,onlytextwidth]
-\begin{column}{0.58\textwidth}
-\includegraphics[width=\textwidth]{05_ga_productivity_energy_front.png}
-\end{column}
-\begin{column}{0.39\textwidth}
-\begin{itemize}
-    \item Predicted productivity range: 16.49--115.45 mol kg$^{-1}$ h$^{-1}$.
-    \item Predicted energy range: 36.70--266.08 kWh ton$^{-1}$.
-    \item Purity remains near feed level.
-    \item This front is mainly a throughput-energy tradeoff.
-\end{itemize}
-\end{column}
-\end{columns}
-\end{frame}
-
-\begin{frame}{Closed-Loop Handoff}
-\begin{columns}[T,onlytextwidth]
-\begin{column}{0.52\textwidth}
-\includegraphics[width=\textwidth]{06_closed_loop_handoff_or_comparison.png}
-\end{column}
-\begin{column}{0.45\textwidth}
-\begin{itemize}
-    \item Full final GA populations are saved as CSV.
-    \item Surrogate Pareto candidates are saved separately.
-    \item Forty rerun inputs are exported for the detailed model.
-    \item A result template defines the expected return format.
-    \item The comparison script computes errors after detailed results are saved.
+    \item Purity-recovery candidates span a broad operating envelope.
+    \item Productivity-energy candidates concentrate near the recovery constraint.
+    \item Optimized points are screening decisions and should be validated by detailed gPROMS reruns.
 \end{itemize}
 \end{column}
 \end{columns}
@@ -191,11 +230,11 @@ $\log_{10}$(energy) & 0.0817 & 0.964 \\
 
 \begin{frame}{Conclusions}
 \begin{itemize}
-    \item The project now uses only existing manifest data for surrogate training.
-    \item NSGA-II turns the surrogate into two explicit multi-objective design fronts.
-    \item Output clipping prevents the GA from reporting values outside the manifest training envelope.
-    \item Purity-optimized candidates require detailed-model confirmation because purity is the weakest surrogate target.
-    \item The CSV handoff completes the closed-loop structure for surrogate-versus-detailed comparison.
+    \item The MAT file was converted into a clean scalar table with 1708 successful VPSA simulations.
+    \item Eight surrogate families were tuned and compared with global and Pareto-focused metrics.
+    \item RBF SVR was selected as the best optimization surrogate.
+    \item NSGA-II produced interpretable Pareto fronts for both objective formulations.
+    \item The workflow now connects data conversion, surrogate learning, optimization, figures, report, and slides.
 \end{itemize}
 \end{frame}
 

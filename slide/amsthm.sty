@@ -1,0 +1,11 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{amsthm}[2026/04/28 Local minimal fallback for beamer]
+
+\providecommand{\theoremstyle}[1]{}
+\providecommand{\proofname}{Proof}
+\providecommand{\qedsymbol}{$\square$}
+\makeatletter
+\@ifundefined{proof}{%
+  \newenvironment{proof}[1][\proofname]{\par\noindent\textit{##1.}\ }{\hfill\qedsymbol\par}%
+}{}
+\makeatother

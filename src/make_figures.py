@@ -47,6 +47,17 @@ def save_dual(fig: plt.Figure, stem: str) -> None:
     plt.close(fig)
 
 
+def summary_value(key: str, default: str = "") -> str:
+    summary_path = DATA_DIR / "surrogate_summary.csv"
+    if not summary_path.exists():
+        return default
+    summary = pd.read_csv(summary_path)
+    match = summary.loc[summary["key"].eq(key), "value"]
+    if match.empty:
+        return default
+    return str(match.iloc[0])
+
+
 def plot_sampling_coverage() -> None:
     manifest = load_manifest()
     bounds = variable_bounds(manifest).set_index("variable")
@@ -70,6 +81,7 @@ def plot_sampling_coverage() -> None:
 def plot_surrogate_validation() -> None:
     pred = pd.read_csv(DATA_DIR / "surrogate_predictions.csv")
     metrics = pd.read_csv(DATA_DIR / "surrogate_metrics.csv")
+    primary_label = summary_value("primary_model_label", "Primary surrogate")
     test = pred.loc[pred["split"].eq("test")].copy()
     metric_lookup = metrics.loc[metrics["split"].eq("test")].set_index("target")
 
@@ -95,12 +107,42 @@ def plot_surrogate_validation() -> None:
         ax.set_xlabel("Detailed simulation in manifest")
         ax.set_ylabel("Surrogate prediction")
         ax.grid(alpha=0.25)
-    fig.suptitle("Manifest-Only Surrogate Validation", y=1.02)
+    fig.suptitle(f"Manifest-Only Surrogate Validation: {primary_label}", y=1.02)
     fig.tight_layout()
     save_dual(fig, "02_surrogate_validation")
 
 
 def plot_surrogate_metrics() -> None:
+    comparison_path = DATA_DIR / "surrogate_model_metrics.csv"
+    summary_path = DATA_DIR / "surrogate_model_summary.csv"
+    if comparison_path.exists() and summary_path.exists():
+        metrics = pd.read_csv(comparison_path)
+        summary = pd.read_csv(summary_path).sort_values("rank_screening")
+        targets = ["purity", "recovery", "productivity_mol_kg_h", "log_energy"]
+        labels = summary["model_label"].to_list()
+        test = metrics.loc[metrics["split"].eq("test") & metrics["target"].isin(targets)].copy()
+        pivot = test.pivot_table(index="target", columns="model_label", values="r2", aggfunc="first")
+        values = pivot.reindex(index=targets, columns=labels).to_numpy(float)
+
+        fig, ax = plt.subplots(figsize=(12.2, 4.8))
+        im = ax.imshow(values, cmap="viridis", vmin=0.0, vmax=1.0, aspect="auto")
+        ax.set_xticks(np.arange(len(labels)))
+        ax.set_xticklabels(labels, rotation=24, ha="right")
+        ax.set_yticks(np.arange(len(targets)))
+        ax.set_yticklabels([TARGET_LABELS.get(target, target) for target in targets])
+        ax.set_title("Held-Out Test R2 Across Surrogate Candidates")
+        for row_idx in range(values.shape[0]):
+            for col_idx in range(values.shape[1]):
+                value = values[row_idx, col_idx]
+                if np.isfinite(value):
+                    text_color = "white" if value < 0.55 else "black"
+                    ax.text(col_idx, row_idx, f"{value:.3f}", ha="center", va="center", color=text_color, fontsize=8.5)
+        cbar = fig.colorbar(im, ax=ax, pad=0.01)
+        cbar.set_label("Test R2")
+        fig.tight_layout()
+        save_dual(fig, "03_surrogate_metric_summary")
+        return
+
     metrics = pd.read_csv(DATA_DIR / "surrogate_metrics.csv")
     test = metrics.loc[metrics["split"].eq("test")].copy()
     order = ["purity", "recovery", "productivity_mol_kg_h", "log_energy", "energy_kWh_ton"]

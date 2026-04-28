@@ -1,0 +1,7 @@
+variable,lower,upper
+FAD_m3_h,0.5,1.0
+FRP_m3_h,0.35,0.85
+FVU_m3_h,1.0,2.0
+TRP_s,35.0,55.0
+TED_s,5.0,15.0
+TPR_s,15.0,25.0

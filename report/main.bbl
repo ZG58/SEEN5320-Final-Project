@@ -1,29 +1,10 @@
 \begin{thebibliography}{1}
 
-\bibitem{bishop2006pattern}
-Christopher~M. Bishop.
-\newblock {\em Pattern Recognition and Machine Learning}.
-\newblock Springer, 2006.
-
-\bibitem{breiman2001random}
-Leo Breiman.
-\newblock Random forests.
-\newblock {\em Machine Learning}, 45:5--32, 2001.
-
-\bibitem{cortes1995svm}
-Corinna Cortes and Vladimir Vapnik.
-\newblock Support-vector networks.
-\newblock {\em Machine Learning}, 20:273--297, 1995.
-
-\bibitem{mckay1979lhs}
-M.~D. McKay, R.~J. Beckman, and W.~J. Conover.
-\newblock A comparison of three methods for selecting values of input variables
-  in the analysis of output from a computer code.
-\newblock {\em Technometrics}, 21(2):239--245, 1979.
-
-\bibitem{ruthven1984adsorption}
-Douglas~M. Ruthven.
-\newblock {\em Principles of Adsorption and Adsorption Processes}.
-\newblock John Wiley and Sons, 1984.
+\bibitem{wang2022comparative}
+Zhenguang Wang, Yuanhui Shen, Donghui Zhang, Zhongli Tang, and Wenbin Li.
+\newblock A comparative study of multi-objective optimization with ann-based
+  vpsa model for {CO2} capture from dry flue gas.
+\newblock {\em Journal of Environmental Chemical Engineering}, 10(4):108031,
+  2022.
 
 \end{thebibliography}

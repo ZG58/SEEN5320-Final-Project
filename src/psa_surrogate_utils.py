@@ -192,6 +192,39 @@ def polynomial_basis(x_scaled: np.ndarray, powers: list[tuple[int, ...]]) -> np.
     return basis
 
 
+def squared_euclidean_distances(left: np.ndarray, right: np.ndarray) -> np.ndarray:
+    left = np.asarray(left, dtype=float)
+    right = np.asarray(right, dtype=float)
+    left_norm = np.sum(left**2, axis=1)[:, None]
+    right_norm = np.sum(right**2, axis=1)[None, :]
+    return np.maximum(left_norm + right_norm - 2.0 * left @ right.T, 0.0)
+
+
+def rbf_kernel(left: np.ndarray, right: np.ndarray, length_scale: float) -> np.ndarray:
+    if length_scale <= 0 or not np.isfinite(length_scale):
+        raise ValueError(f"Invalid RBF length scale: {length_scale}")
+    return np.exp(-0.5 * squared_euclidean_distances(left, right) / (length_scale**2))
+
+
+def weighted_knn_predict_scaled(
+    query_x_scaled: np.ndarray,
+    train_x_scaled: np.ndarray,
+    train_y_scaled: np.ndarray,
+    k: int,
+    epsilon: float = 1e-12,
+) -> np.ndarray:
+    query_x_scaled = np.asarray(query_x_scaled, dtype=float)
+    train_x_scaled = np.asarray(train_x_scaled, dtype=float)
+    train_y_scaled = np.asarray(train_y_scaled, dtype=float)
+    k_eff = int(min(max(k, 1), len(train_x_scaled)))
+    distances = np.sqrt(squared_euclidean_distances(query_x_scaled, train_x_scaled))
+    neighbor_idx = np.argpartition(distances, kth=k_eff - 1, axis=1)[:, :k_eff]
+    neighbor_dist = np.take_along_axis(distances, neighbor_idx, axis=1)
+    weights = 1.0 / (neighbor_dist + epsilon)
+    weights = weights / weights.sum(axis=1, keepdims=True)
+    return np.einsum("ij,ijk->ik", weights, train_y_scaled[neighbor_idx])
+
+
 def transform_targets(frame: pd.DataFrame, feed_co2: float = FEED_CO2_FRACTION) -> np.ndarray:
     purity_excess = np.clip(frame["purity"].to_numpy(float) - feed_co2, MIN_PURITY_EXCESS, None)
     recovery = frame["recovery"].to_numpy(float)
@@ -254,7 +287,8 @@ def load_model(path: Path | None = None) -> dict:
     if not path.exists():
         raise FileNotFoundError(f"Missing surrogate model file: {path}")
     model = json.loads(path.read_text(encoding="utf-8"))
-    model["basis_powers"] = [tuple(int(v) for v in power) for power in model["basis_powers"]]
+    if "basis_powers" in model:
+        model["basis_powers"] = [tuple(int(v) for v in power) for power in model["basis_powers"]]
     return model
 
 
@@ -266,24 +300,7 @@ def _json_default(value):
     raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")
 
 
-def predict_surrogate(model: dict, x_raw: pd.DataFrame | np.ndarray) -> pd.DataFrame:
-    if isinstance(x_raw, pd.DataFrame):
-        x_values = x_raw[DESIGN_COLS].to_numpy(float)
-    else:
-        x_values = np.asarray(x_raw, dtype=float)
-    input_mean = np.asarray(model["input_mean"], dtype=float)
-    input_scale = np.asarray(model["input_scale"], dtype=float)
-    target_mean = np.asarray(model["target_mean"], dtype=float)
-    target_scale = np.asarray(model["target_scale"], dtype=float)
-    coefficients = np.asarray(model["coefficients"], dtype=float)
-    powers = [tuple(power) for power in model["basis_powers"]]
-
-    x_scaled = (x_values - input_mean) / input_scale
-    phi = polynomial_basis(x_scaled, powers)
-    transformed = (phi @ coefficients) * target_scale + target_mean
-    predictions = inverse_targets(transformed, feed_co2=float(model.get("feed_co2_fraction", FEED_CO2_FRACTION)))
-
-    prediction_bounds = model.get("prediction_bounds")
+def _apply_prediction_bounds(predictions: pd.DataFrame, prediction_bounds: dict | None) -> pd.DataFrame:
     if prediction_bounds:
         for target in ["purity", "recovery", "productivity_mol_kg_h", "log_energy"]:
             if target in prediction_bounds:
@@ -297,6 +314,42 @@ def predict_surrogate(model: dict, x_raw: pd.DataFrame | np.ndarray) -> pd.DataF
             predictions["energy_kWh_ton"] = predictions["energy_kWh_ton"].clip(lower=lo, upper=hi)
             predictions["log_energy"] = np.log10(np.clip(predictions["energy_kWh_ton"], 1e-12, None))
     return predictions
+
+
+def predict_surrogate(model: dict, x_raw: pd.DataFrame | np.ndarray) -> pd.DataFrame:
+    if isinstance(x_raw, pd.DataFrame):
+        x_values = x_raw[DESIGN_COLS].to_numpy(float)
+    else:
+        x_values = np.asarray(x_raw, dtype=float)
+    input_mean = np.asarray(model["input_mean"], dtype=float)
+    input_scale = np.asarray(model["input_scale"], dtype=float)
+    target_mean = np.asarray(model["target_mean"], dtype=float)
+    target_scale = np.asarray(model["target_scale"], dtype=float)
+
+    x_scaled = (x_values - input_mean) / input_scale
+    model_type = str(model.get("model_type", "polynomial_ridge_response_surface"))
+
+    if "rbf_kernel_ridge" in model_type:
+        train_x_scaled = np.asarray(model["train_x_scaled"], dtype=float)
+        dual_coefficients = np.asarray(model["dual_coefficients"], dtype=float)
+        kernel = rbf_kernel(x_scaled, train_x_scaled, float(model["length_scale"]))
+        transformed_scaled = kernel @ dual_coefficients
+    elif "weighted_knn" in model_type:
+        transformed_scaled = weighted_knn_predict_scaled(
+            x_scaled,
+            np.asarray(model["train_x_scaled"], dtype=float),
+            np.asarray(model["train_y_scaled"], dtype=float),
+            int(model["k"]),
+        )
+    else:
+        coefficients = np.asarray(model["coefficients"], dtype=float)
+        powers = [tuple(power) for power in model["basis_powers"]]
+        phi = polynomial_basis(x_scaled, powers)
+        transformed_scaled = phi @ coefficients
+
+    transformed = transformed_scaled * target_scale + target_mean
+    predictions = inverse_targets(transformed, feed_co2=float(model.get("feed_co2_fraction", FEED_CO2_FRACTION)))
+    return _apply_prediction_bounds(predictions, model.get("prediction_bounds"))
 
 
 def objective_scores(predictions: pd.DataFrame, problem: str) -> np.ndarray:
