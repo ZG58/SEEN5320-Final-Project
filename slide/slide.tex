@@ -5,16 +5,50 @@
 
 \usepackage[T1]{fontenc}
 \usepackage{amsmath}
+\usepackage{array}
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{HKUSTstyle}
+\usepackage{tabularx}
+\usepackage{tikz}
 \usefonttheme{serif}
+\usetikzlibrary{arrows.meta,positioning}
+
+\setbeamertemplate{headline}{}
+\setbeamertemplate{navigation symbols}{}
+\setbeamersize{text margin left=0.48cm,text margin right=0.48cm}
+\setlength{\tabcolsep}{3.6pt}
+\renewcommand{\arraystretch}{1.12}
 
 \graphicspath{{pic/}{pic/psa_scalar/}{slide/pic/}{slide/pic/psa_scalar/}}
 
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\setbeamercolor{takeaway}{bg=hkustblue!7,fg=black}
+\setbeamercolor{metricbox}{bg=hkustblue!8,fg=black}
+\setbeamerfont{itemize/enumerate body}{size=\small}
+\setbeamerfont{itemize/enumerate subbody}{size=\scriptsize}
+
+\newcommand{\source}[1]{\vspace{0.04cm}{\scriptsize\color{gray}Source: #1}}
+\newcommand{\takeaway}[1]{%
+    \vspace{0.08cm}%
+    \begin{beamercolorbox}[wd=\textwidth,sep=0.09cm]{takeaway}
+        \scriptsize\textbf{Takeaway.} #1
+    \end{beamercolorbox}%
+}
+\newcommand{\fullfig}[2][0.67\textheight]{%
+    \centering
+    \includegraphics[width=0.97\textwidth,height=#1,keepaspectratio]{#2}%
+}
+\newcommand{\metricbox}[2]{%
+    \begin{beamercolorbox}[wd=\textwidth,sep=0.10cm,center]{metricbox}
+        {\small\bfseries #1}\\[-0.02cm]
+        {\scriptsize #2}
+    \end{beamercolorbox}%
+}
+
 \author{Your Name}
-\title{Machine-Learning Surrogate Optimization of a VPSA Process}
+\title[VPSA Surrogate Optimization]{Machine-Learning Surrogate Optimization of a VPSA Process}
 \subtitle{\texorpdfstring{SEEN5320 Final Project: CO$_2$ capture from dry flue gas}{SEEN5320 Final Project: CO2 capture from dry flue gas}}
 \institute{
     @connect.hkust-gz.edu.cn\\
@@ -27,136 +61,187 @@
 
 \begin{frame}
     \titlepage
-    \vspace*{-0.6cm}
+    \vspace*{-0.65cm}
     \begin{center}
-        \includegraphics[keepaspectratio,scale=0.025]{UST.png}
+        \includegraphics[keepaspectratio,scale=0.024]{UST.png}
     \end{center}
 \end{frame}
 
 \begin{frame}{Project Route}
-\begin{block}{Goal}
-Use successful gPROMS VPSA simulations to train a fast surrogate and optimize process KPIs.
+\begin{columns}[T,totalwidth=\textwidth]
+\begin{column}{0.43\textwidth}
+\vspace{0pt}
+\begin{block}{Core task}
+Build a fast surrogate for successful gPROMS VPSA simulations, then use it to screen multi-objective operating conditions.
 \end{block}
-\begin{itemize}
-    \item Source data: \texttt{data/raw\_data.mat}.
-    \item Successful simulations: 1708 rows from an original 2000-point LHS design.
-    \item Inputs: FAD, FRP, FVU, TRP, TED, and TPR.
-    \item Outputs: recovery, purity, productivity, and specific energy.
-    \item Method: tune multiple ML models, select the best Pareto-aware surrogate, then run NSGA-II.
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Literature Basis}
-\begin{columns}[T,onlytextwidth]
-\begin{column}{0.52\textwidth}
+\vspace{0.10cm}
 \small
-\begin{itemize}
-    \item Wang et al. studied a 3-bed 7-step VPSA process for CO$_2$/N$_2$ dry flue gas capture.
-    \item Their ANN surrogate enabled multi-objective optimization without repeatedly solving the full PDAE model.
-    \item This project reproduces that idea with the available scalar simulation data.
-\end{itemize}
-\end{column}
-\begin{column}{0.44\textwidth}
-\fbox{\parbox[c][3.2cm][c]{0.92\textwidth}{\centering Placeholder for literature process schematic and ANN workflow}}
-\end{column}
-\end{columns}
-\end{frame}
-
-\begin{frame}{Data Conversion}
-\begin{columns}[T,onlytextwidth]
-\begin{column}{0.48\textwidth}
-\small
-\begin{tabular}{lr}
+\begin{tabularx}{\textwidth}{lY}
 \toprule
-Item & Value \\
-\midrule
-\texttt{invar} shape & $1708 \times 6$ \\
-\texttt{result\_matrix} shape & $1708 \times 284$ \\
-KPI columns used & first 4 \\
-CSV rows & 1708 \\
-CSV columns & 12 \\
+Dataset & 1708 successful runs \\
+Inputs & 6 cycle variables \\
+Targets & 4 scalar KPIs \\
+Search & NSGA-II on the best surrogate \\
 \bottomrule
-\end{tabular}
-\vspace{0.3cm}
-
-\begin{itemize}
-    \item Failed simulations are absent from the MAT file.
-    \item Remaining profile outputs are ignored in this scalar surrogate version.
-\end{itemize}
+\end{tabularx}
 \end{column}
-\begin{column}{0.50\textwidth}
-\includegraphics[width=\textwidth]{01_sampling_coverage.png}
+\begin{column}{0.54\textwidth}
+\vspace{0pt}
+\centering
+\begin{tikzpicture}[
+    node distance=0.18cm,
+    stage/.style={draw, rounded corners=1.5pt, fill=hkustblue!7, align=left, text width=0.82\textwidth, minimum height=0.56cm, font=\small},
+    arr/.style={-{Stealth[length=1.6mm]}, line width=0.35pt}
+]
+\node[stage] (s1) {\textbf{1. Convert data} \hfill MAT $\rightarrow$ clean scalar tables};
+\node[stage, below=of s1] (s2) {\textbf{2. Train surrogates} \hfill CV-tuned regressors};
+\node[stage, below=of s2] (s3) {\textbf{3. Select model} \hfill global + Pareto-aware error};
+\node[stage, below=of s3] (s4) {\textbf{4. Optimize} \hfill purity-recovery and productivity-energy fronts};
+\node[stage, below=of s4] (s5) {\textbf{5. Interpret} \hfill figures, representative cases, report};
+\draw[arr] (s1) -- (s2);
+\draw[arr] (s2) -- (s3);
+\draw[arr] (s3) -- (s4);
+\draw[arr] (s4) -- (s5);
+\end{tikzpicture}
 \end{column}
 \end{columns}
 \end{frame}
 
-\begin{frame}{KPI Landscape}
-\begin{columns}[T,onlytextwidth]
+\begin{frame}{Why VPSA Needs Surrogate Optimization}
+\begin{columns}[T,totalwidth=\textwidth]
 \begin{column}{0.48\textwidth}
-\includegraphics[width=\textwidth]{02_kpi_distributions.png}
+\vspace{0pt}
+\begin{block}{Process challenge}
+\small
+\begin{itemize}
+    \item Dry flue gas is dilute: 15/85 mol\% CO$_2$/N$_2$ in the reference case.
+    \item Purity, recovery, productivity, and energy move in competing directions.
+    \item A cyclic VPSA model is expensive to optimize directly.
+\end{itemize}
+\end{block}
+\source{Wang et al. (2022); Ruthven (1984)}
 \end{column}
-\begin{column}{0.50\textwidth}
-\includegraphics[width=\textwidth]{03_empirical_pareto_sets.png}
+\begin{column}{0.48\textwidth}
+\vspace{0pt}
+\begin{block}{This project}
+\small
+\begin{itemize}
+    \item Use successful detailed simulations as training data.
+    \item Benchmark several surrogate families with the same split.
+    \item Search Pareto fronts after validating the selected model.
+\end{itemize}
+\end{block}
+\source{Deb et al. (2002); Wang et al. (2022)}
 \end{column}
 \end{columns}
+\end{frame}
+
+\begin{frame}{Reference VPSA Cycle}
+\begin{columns}[T,totalwidth=\textwidth]
+\begin{column}{0.42\textwidth}
+\vspace{0pt}
+\small
+\begin{block}{Reference case}
+\begin{itemize}
+    \item Adsorbent: silica gel.
+    \item Configuration: 3 beds, 7 cyclic steps.
+    \item Feed: dry flue gas with 15 mol\% CO$_2$.
+    \item Sampling: Latin hypercube design around six operating variables.
+\end{itemize}
+\end{block}
+\source{Wang et al. (2022)}
+\end{column}
+\begin{column}{0.55\textwidth}
+\vspace{0pt}
+\centering
+\begin{tikzpicture}[
+    scale=0.98,
+    transform shape,
+    node distance=0.16cm,
+    cycstep/.style={draw, rounded corners=1pt, align=center, minimum width=1.08cm, minimum height=0.64cm, font=\scriptsize},
+    arr/.style={-{Stealth[length=1.5mm]}, line width=0.35pt}
+]
+\node[cycstep, fill=blue!10] (ad) {AD\\Adsorb};
+\node[cycstep, fill=blue!7, right=of ad] (cod) {CoD\\Blow};
+\node[cycstep, fill=green!10, right=of cod] (rp) {RP\\Replace};
+\node[cycstep, fill=yellow!15, right=of rp] (ed) {ED\\Equal.};
+\node[cycstep, fill=red!8, below=0.34cm of ed] (vu) {VU\\Vacuum};
+\node[cycstep, fill=yellow!15, left=of vu] (er) {ER\\Equal.};
+\node[cycstep, fill=blue!10, left=of er] (pr) {PR\\Press.};
+\draw[arr] (ad) -- (cod);
+\draw[arr] (cod) -- (rp);
+\draw[arr] (rp) -- (ed);
+\draw[arr] (ed) -- (vu);
+\draw[arr] (vu) -- (er);
+\draw[arr] (er) -- (pr);
+\draw[arr] (pr.west) to[bend right=35] (ad.south);
+\end{tikzpicture}
+\vspace{0.18cm}
+
+\scriptsize
+AD loads CO$_2$; CoD/RP remove N$_2$; ED/ER reuse pressure; VU withdraws CO$_2$-rich gas; PR restores pressure.
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Decision Variables}
+\scriptsize
+\begin{tabularx}{\textwidth}{lY Y}
+\toprule
+Variable & Cycle location & Main effect \\
+\midrule
+FAD & Adsorption feed & Bed loading rate and N$_2$ breakthrough tendency \\
+FRP & Replacement flow & CO$_2$-rich purge strength for removing residual N$_2$ \\
+FVU & Vacuum flow & Desorption rate and vacuum-pump energy demand \\
+TRP & Replacement time & Purity improvement versus cycle-time loss \\
+TED & Equalization depressurization & Gas recovery and pressure-energy reuse \\
+TPR & Pressurization & Initial pressure state before the next adsorption step \\
+\bottomrule
+\end{tabularx}
+\takeaway{The six variables are coupled because each bed enters the next step with the pressure, loading, and composition left by the previous step.}
+\end{frame}
+
+\begin{frame}{Sampling Coverage}
+\fullfig[0.68\textheight]{01_sampling_coverage.png}
+\takeaway{The usable dataset contains 1708 successful simulations and covers the six-variable design space used for surrogate training.}
+\end{frame}
+
+\begin{frame}{KPI Distributions}
+\fullfig[0.68\textheight]{02_kpi_distributions.png}
+\takeaway{The successful samples span broad recovery, purity, productivity, and energy ranges, which makes scalar accuracy alone insufficient for optimization use.}
+\end{frame}
+
+\begin{frame}{Empirical Pareto Regions}
+\fullfig[0.68\textheight]{03_empirical_pareto_sets.png}
+\takeaway{Near-front samples define the operating regions where surrogate error matters most for downstream optimization.}
 \end{frame}
 
 \begin{frame}{Surrogate Model Benchmark}
-\begin{columns}[T,onlytextwidth]
-\begin{column}{0.46\textwidth}
-\small
-\begin{itemize}
-    \item Same fixed 80/20 train-test split.
-    \item 3-fold CV hyperparameter search on training data.
-    \item Energy modeled in log space.
-    \item Selection score = 0.6 Pareto NRMSE + 0.4 global NRMSE.
-\end{itemize}
-\vspace{0.2cm}
-\begin{tabular}{lrr}
-\toprule
-Model & Score & $R^2$ \\
-\midrule
-RBF SVR & 0.00288 & 0.99978 \\
-RBF KRR & 0.00301 & 0.99977 \\
-Poly ridge & 0.00395 & 0.99983 \\
-MLP & 0.01411 & 0.99725 \\
-\bottomrule
-\end{tabular}
+\fullfig[0.58\textheight]{04_model_comparison.png}
+\vspace{-0.02cm}
+\begin{columns}[T,totalwidth=\textwidth]
+\begin{column}{0.31\textwidth}
+\metricbox{RBF KRR}{score 0.00265}
 \end{column}
-\begin{column}{0.52\textwidth}
-\includegraphics[width=\textwidth]{04_model_comparison.png}
+\begin{column}{0.31\textwidth}
+\metricbox{RBF SVR}{score 0.00273}
+\end{column}
+\begin{column}{0.31\textwidth}
+\metricbox{Poly ridge}{score 0.00316}
 \end{column}
 \end{columns}
+\takeaway{The model ranking uses 0.6 Pareto NRMSE plus 0.4 global NRMSE, so the selected model favors optimization-relevant accuracy.}
 \end{frame}
 
 \begin{frame}{Best Surrogate}
-\begin{columns}[T,onlytextwidth]
-\begin{column}{0.48\textwidth}
-\includegraphics[width=\textwidth]{05_best_model_validation.png}
-\end{column}
-\begin{column}{0.50\textwidth}
-\small
-\begin{block}{Selected model}
-RBF SVR with $C=100$, $\epsilon=0.001$, and $\gamma=0.1$.
-\end{block}
-\begin{tabular}{lrr}
-\toprule
-Target & RMSE & Test $R^2$ \\
-\midrule
-Recovery & 0.00122 & 0.99996 \\
-Purity & 0.00035 & 0.99995 \\
-Productivity & 0.00064 & 0.99995 \\
-Energy & 22.74 & 0.99826 \\
-\bottomrule
-\end{tabular}
-\end{column}
-\end{columns}
+\fullfig[0.68\textheight]{05_best_model_validation.png}
+\takeaway{RBF kernel ridge is selected with $\alpha=0.0001$ and $\gamma=0.03$; held-out $R^2$ is near 1.0 for all four KPIs.}
 \end{frame}
 
 \begin{frame}{NSGA-II Setup}
-\begin{columns}[T,onlytextwidth]
-\begin{column}{0.50\textwidth}
-\small
+\begin{columns}[T,totalwidth=\textwidth]
+\begin{column}{0.48\textwidth}
+\vspace{0pt}
 \begin{block}{Problem 1}
 \[
 \max(\mathrm{purity},\mathrm{recovery})
@@ -164,78 +249,82 @@ Energy & 22.74 & 0.99826 \\
 \end{block}
 \begin{block}{Problem 2}
 \[
-\max \mathrm{productivity},\quad \min \mathrm{energy}
+\max \mathrm{productivity}, \qquad \min \mathrm{energy}
 \]
-\[
-\mathrm{purity}\ge0.70,\quad \mathrm{recovery}\ge0.90
-\]
+\scriptsize
+Purity and recovery are reported, not constrained.
 \end{block}
 \end{column}
-\begin{column}{0.47\textwidth}
+\begin{column}{0.48\textwidth}
+\vspace{0pt}
 \small
-\begin{itemize}
-    \item Population size: 160.
-    \item Generations: 250.
-    \item Operators: simulated binary crossover and polynomial mutation.
-    \item Ranking: constrained nondominated sorting plus crowding distance.
-\end{itemize}
+\begin{tabularx}{\textwidth}{lY}
+\toprule
+Setting & Value \\
+\midrule
+Population & 160 \\
+Generations & 250 \\
+Crossover & Simulated binary \\
+Mutation & Polynomial \\
+Selection & Nondominated sorting + crowding distance \\
+\bottomrule
+\end{tabularx}
 \end{column}
 \end{columns}
 \end{frame}
 
 \begin{frame}{Optimization Fronts}
-\includegraphics[width=0.94\textwidth]{06_optimization_fronts.png}
+\fullfig[0.68\textheight]{06_optimization_fronts.png}
+\takeaway{The purity-recovery front is broad, while the productivity-energy front concentrates in a high-throughput, low-energy region.}
 \end{frame}
 
-\begin{frame}{Optimization Results}
-\begin{columns}[T,onlytextwidth]
-\begin{column}{0.48\textwidth}
-\small
-\begin{block}{Purity-recovery front}
-\begin{itemize}
-    \item Purity range: 0.719--0.918.
-    \item Recovery range: 0.349--0.935.
-    \item Maximum recovery point: purity 0.719, recovery 0.935, energy 1139 kJ kgCO$_2^{-1}$.
-\end{itemize}
-\end{block}
-\end{column}
-\begin{column}{0.48\textwidth}
-\small
-\begin{block}{Productivity-energy front}
-\begin{itemize}
-    \item All nondominated candidates satisfy the constraints.
-    \item Productivity range: 0.485--0.504 mol h$^{-1}$ kg$^{-1}$.
-    \item Energy range: 961--1003 kJ kgCO$_2^{-1}$.
-\end{itemize}
-\end{block}
-\end{column}
-\end{columns}
+\begin{frame}{Optimized Input Distributions}
+\fullfig[0.68\textheight]{08_optimization_input_distributions.png}
+\takeaway{Optimized candidates often sit near sampling bounds, so final candidates should be checked with detailed gPROMS reruns.}
 \end{frame}
 
 \begin{frame}{Representative Conditions}
-\begin{columns}[T,onlytextwidth]
-\begin{column}{0.57\textwidth}
-\includegraphics[width=\textwidth]{07_representative_conditions.png}
-\end{column}
-\begin{column}{0.40\textwidth}
+\fullfig[0.68\textheight]{07_representative_conditions.png}
+\takeaway{Purity-recovery and productivity-energy candidates use different operating patterns, especially in FAD, FRP, TED, and TPR.}
+\end{frame}
+
+\begin{frame}{Optimization Result Summary}
+\begin{columns}[T,totalwidth=\textwidth]
+\begin{column}{0.48\textwidth}
+\vspace{0pt}
+\begin{block}{Purity-recovery front}
 \small
 \begin{itemize}
-    \item Purity-recovery candidates span a broad operating envelope.
-    \item Productivity-energy candidates concentrate near the recovery constraint.
-    \item Optimized points are screening decisions and should be validated by detailed gPROMS reruns.
+    \item Purity: 0.770--0.918.
+    \item Recovery: 0.393--0.935.
+    \item Maximum recovery point: purity 0.770, recovery 0.935, energy 1434 kJ kgCO$_2^{-1}$.
 \end{itemize}
+\end{block}
+\end{column}
+\begin{column}{0.48\textwidth}
+\vspace{0pt}
+\begin{block}{Productivity-energy front}
+\small
+\begin{itemize}
+    \item Productivity: 0.532--0.552 mol h$^{-1}$ kg$^{-1}$.
+    \item Energy: 913--936 kJ kgCO$_2^{-1}$.
+    \item This front is unconstrained by purity and recovery.
+\end{itemize}
+\end{block}
 \end{column}
 \end{columns}
+\takeaway{The two objective formulations select different process regimes, so the best point depends on the plant-level specification.}
 \end{frame}
 
 \begin{frame}{Conclusions}
+\small
 \begin{itemize}
-    \item The MAT file was converted into a clean scalar table with 1708 successful VPSA simulations.
-    \item Eight surrogate families were tuned and compared with global and Pareto-focused metrics.
-    \item RBF SVR was selected as the best optimization surrogate.
-    \item NSGA-II produced interpretable Pareto fronts for both objective formulations.
-    \item The workflow now connects data conversion, surrogate learning, optimization, figures, report, and slides.
+    \item The raw MAT file was converted into a reproducible scalar dataset with 1708 successful VPSA simulations.
+    \item Eight surrogate families were compared using global and Pareto-focused validation.
+    \item RBF kernel ridge gave the best optimization-oriented score and was used inside NSGA-II.
+    \item The resulting Pareto fronts expose the main purity-recovery and productivity-energy tradeoffs.
 \end{itemize}
+\takeaway{The workflow is ready for final confirmation by rerunning selected nondominated candidates in the detailed simulator.}
 \end{frame}
 
 \end{document}

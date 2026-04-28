@@ -15,7 +15,6 @@ from psa_project_utils import (
     INPUT_SHORT_LABELS,
     REPORT_FIG_DIR,
     SLIDE_FIG_DIR,
-    TARGET_COLS,
     TARGET_LABELS,
     empirical_pareto_masks,
     ensure_output_dirs,
@@ -234,14 +233,13 @@ def plot_optimization_fronts() -> None:
 
     pe = ga.loc[ga["problem"].eq("productivity_energy") & ga["is_feasible"].eq(1)].copy()
     ax = axes[1]
-    feasible = frame.loc[frame["purity"].ge(0.70) & frame["recovery"].ge(0.90)]
     ax.scatter(
-        feasible["energy_kJ_kgCO2"],
-        feasible["productivity_mol_h_kg"],
+        frame["energy_kJ_kgCO2"],
+        frame["productivity_mol_h_kg"],
         s=18,
-        alpha=0.35,
+        alpha=0.25,
         color="#9AA0A6",
-        label="Feasible samples",
+        label="Successful samples",
     )
     sc = ax.scatter(
         pe["pred_energy_kJ_kgCO2"],
@@ -264,6 +262,63 @@ def plot_optimization_fronts() -> None:
 
     fig.tight_layout()
     save_dual(fig, "06_optimization_fronts")
+
+
+def plot_optimization_input_distributions() -> None:
+    samples = load_scalar_samples()
+    candidates = pd.read_csv(DATA_DIR / "psa_optimization_nondominated.csv")
+    candidates = candidates.loc[candidates["is_feasible"].eq(1)].copy()
+    bounds = input_bounds_frame().set_index("variable")
+
+    colors = {"purity_recovery": "#4C78A8", "productivity_energy": "#F58518"}
+    labels = {"purity_recovery": "Purity-recovery", "productivity_energy": "Productivity-energy"}
+    fig, axes = plt.subplots(2, 3, figsize=(12.2, 6.8))
+    for ax, col in zip(axes.ravel(), INPUT_COLS):
+        x_min = float(bounds.loc[col, "lower"])
+        x_max = float(bounds.loc[col, "upper"])
+        span = x_max - x_min if x_max > x_min else 1.0
+        bins = np.linspace(x_min, x_max, 26)
+        ax.hist(
+            samples[col],
+            bins=bins,
+            density=True,
+            color="#BDBDBD",
+            alpha=0.40,
+            edgecolor="white",
+            linewidth=0.35,
+            label="Successful samples",
+        )
+        for problem, group in candidates.groupby("problem", sort=False):
+            ax.hist(
+                group[col],
+                bins=bins,
+                density=True,
+                histtype="step",
+                linewidth=1.8,
+                color=colors.get(problem, "#666666"),
+                label=labels.get(problem, problem.replace("_", " ")),
+            )
+            jitter = np.linspace(0.0, 0.025, len(group), endpoint=False)
+            ax.scatter(
+                group[col],
+                np.full(len(group), -0.015) - jitter,
+                s=8,
+                marker="|",
+                color=colors.get(problem, "#666666"),
+                alpha=0.35,
+                clip_on=False,
+            )
+        ax.set_xlim(x_min - 0.015 * span, x_max + 0.015 * span)
+        ax.set_ylim(bottom=-0.055)
+        ax.set_title(INPUT_SHORT_LABELS[col])
+        ax.set_xlabel(INPUT_LABELS[col])
+        ax.set_ylabel("Density")
+        ax.grid(alpha=0.22)
+    handles, legend_labels = axes.ravel()[0].get_legend_handles_labels()
+    fig.legend(handles, legend_labels, loc="upper center", ncol=3, frameon=False, bbox_to_anchor=(0.5, 1.02))
+    fig.suptitle("Optimized Input Distributions within Original Sampling Ranges", y=1.08)
+    fig.tight_layout()
+    save_dual(fig, "08_optimization_input_distributions")
 
 
 def plot_representative_conditions() -> None:
@@ -297,6 +352,7 @@ def main() -> None:
     plot_model_comparison()
     plot_best_model_validation()
     plot_optimization_fronts()
+    plot_optimization_input_distributions()
     plot_representative_conditions()
 
 

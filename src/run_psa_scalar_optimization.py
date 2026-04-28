@@ -9,9 +9,7 @@ import pandas as pd
 from psa_project_utils import (
     DATA_DIR,
     INPUT_COLS,
-    PURITY_CONSTRAINT,
     RANDOM_STATE,
-    RECOVERY_CONSTRAINT,
     TARGET_COLS,
     clip_to_observed_bounds,
     inverse_transformed_targets,
@@ -70,9 +68,7 @@ def objective_scores(predictions: pd.DataFrame, problem: str) -> tuple[np.ndarra
         violations = np.zeros(len(predictions), dtype=float)
         return scores, violations
     if problem == "productivity_energy":
-        purity_gap = np.maximum(0.0, PURITY_CONSTRAINT - predictions["purity"].to_numpy(float)) / PURITY_CONSTRAINT
-        recovery_gap = np.maximum(0.0, RECOVERY_CONSTRAINT - predictions["recovery"].to_numpy(float)) / RECOVERY_CONSTRAINT
-        violations = purity_gap + recovery_gap
+        violations = np.zeros(len(predictions), dtype=float)
         scores = np.column_stack(
             [
                 predictions["productivity_mol_h_kg"].to_numpy(float),

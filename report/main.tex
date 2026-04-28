@@ -28,11 +28,15 @@
 \maketitle
 
 \begin{abstract}
-This project builds a machine-learning workflow for a vacuum pressure swing adsorption (VPSA) CO$_2$ capture process using raw gPROMS simulation samples. The source file \path{data/raw_data.mat} contains 1708 successful simulations from an original 2000-point Latin hypercube design. Six operating variables are mapped to four scalar performance indicators: CO$_2$ recovery, CO$_2$ purity, productivity, and specific energy. Eight surrogate model families are tuned and compared on both global test accuracy and Pareto-focused accuracy. The best model, an RBF support vector regression surrogate, is then coupled with an in-house NSGA-II optimizer to generate surrogate Pareto fronts for purity-recovery and productivity-energy optimization.
+This project builds a machine-learning workflow for a vacuum pressure swing adsorption (VPSA) CO$_2$ capture process using raw gPROMS simulation samples. The source file \path{data/raw_data.mat} contains 1708 successful simulations from an original 2000-point Latin hypercube design. Six operating variables are mapped to four scalar performance indicators: CO$_2$ recovery, CO$_2$ purity, productivity, and specific energy. Eight surrogate model families are tuned and compared on both global test accuracy and Pareto-focused accuracy. The best model, an RBF kernel ridge surrogate, is then coupled with an in-house NSGA-II optimizer to generate surrogate Pareto fronts for purity-recovery and unconstrained productivity-energy optimization.
 \end{abstract}
 
 \section{Background and Objective}
-VPSA is attractive for post-combustion CO$_2$ capture because pressure-driven regeneration can be operated cyclically with relatively simple equipment. The reference study by Wang et al. \cite{wang2022comparative} developed a 3-bed 7-step VPSA process for dry flue gas separation and used artificial neural-network surrogates to accelerate multi-objective optimization. The same project logic is followed here: detailed gPROMS simulations are treated as expensive samples, machine-learning models learn the input-output relationship, and a fast surrogate is used to search for improved operating conditions.
+Post-combustion CO$_2$ capture from flue gas is challenging because CO$_2$ is diluted mainly by N$_2$, so direct reuse is usually impossible without an energy-intensive separation step. Capture can also create a concentrated CO$_2$ stream for utilization or storage, but the capture and concentration section is often the dominant cost in the overall carbon-capture chain \cite{wang2011postcombustion,wang2022comparative}. Common separation options include chemical absorption, membrane separation, cryogenic separation, and adsorption. Absorption is mature but requires solvent regeneration, while membranes often require staging and compression to meet high purity and recovery targets \cite{wang2011postcombustion,brunetti2010membrane}.
+
+Adsorption-based CO$_2$ capture is attractive because the cyclic equipment is modular and the regeneration driving force can be changed by pressure, vacuum, temperature, or combinations of these variables \cite{ruthven1984adsorption}. Vacuum pressure swing adsorption (VPSA) is especially relevant for dry flue gas because reducing the bed pressure promotes desorption without heating the full solid inventory. Pilot and simulation studies have therefore examined VPSA and related PSA/VSA cycles for coal-fired flue gas, hydrogen plant tail gas, and other CO$_2$/N$_2$ or CO$_2$-rich separations \cite{krishnamurthy2014pilot,wang2013pilotvpsa,golmakani2015sapo34,luberti2022vpsa}.
+
+The reference study by Wang et al. \cite{wang2022comparative} developed a 3-bed 7-step VPSA process for dry flue gas separation and used artificial neural-network surrogates to accelerate multi-objective optimization. The same project logic is followed here: detailed gPROMS simulations are treated as expensive samples, machine-learning models learn the input-output relationship, and a fast surrogate is used to search for improved operating conditions.
 
 The project objective is to create a reproducible data-to-optimization pipeline:
 \begin{enumerate}
@@ -44,22 +48,38 @@ The project objective is to create a reproducible data-to-optimization pipeline:
 \end{enumerate}
 
 \section{Literature Basis}
-Wang et al. \cite{wang2022comparative} solved two VPSA multi-objective problems: maximizing purity and recovery, and maximizing productivity while minimizing energy under purity and recovery constraints. Their detailed process used silica gel adsorbent, a 15/85 mol\% CO$_2$/N$_2$ feed, and six major decision variables: feed flowrate, replacement flowrate, vacuum flowrate, replacement time, equalization-depressurization time, and pressurization time. Their work motivates the same surrogate-assisted structure used here.
+Wang et al. \cite{wang2022comparative} solved two VPSA multi-objective problems: maximizing purity and recovery, and maximizing productivity while minimizing energy under purity and recovery constraints. Their detailed process used silica gel adsorbent, a 15/85 mol\% CO$_2$/N$_2$ feed, and six major decision variables: feed flowrate, replacement flowrate, vacuum flowrate, replacement time, equalization-depressurization time, and pressurization time. Silica gel was selected because it is inexpensive and robust, and because reported CO$_2$ capture studies have used it or related porous adsorbents under low-temperature regeneration conditions \cite{shen2012twostage,yan2016dryfluegas,wang2022comparative}. Their work motivates the surrogate-assisted structure used here, while the second optimization case in this project is treated as an unconstrained productivity-energy tradeoff.
 
-\begin{figure}[H]
+\begin{table}[H]
 \centering
-\fbox{\parbox[c][4.0cm][c]{0.86\textwidth}{\centering Placeholder for literature figure: 3-bed 7-step VPSA process schematic from Wang et al.}}
-\caption{Literature process schematic placeholder.}
-\end{figure}
+\small
+\caption{Reference 3-bed 7-step VPSA cycle used for the process interpretation.}
+\label{tab:vpsa-cycle}
+\begin{tabular}{@{}llp{0.17\textwidth}p{0.50\textwidth}@{}}
+\toprule
+Step & Symbol & Operation & Main role in the cycle \\
+\midrule
+1 & AD & Adsorption & Feed dry flue gas at high pressure; CO$_2$ is preferentially adsorbed and N$_2$ exits. \\
+2 & CoD & Co-current blowdown & Lower bed pressure from the product end and remove N$_2$-rich gas. \\
+3 & RP & Replacement & Recycle CO$_2$-rich buffer gas to displace remaining N$_2$ and improve purity. \\
+4 & ED & Equalization depressurization & Share gas from a high-pressure bed to a low-pressure bed to save gas and energy. \\
+5 & VU & Vacuum & Desorb CO$_2$ under vacuum and send the CO$_2$-rich stream to the buffer/product side. \\
+6 & ER & Equalization repressurization & Receive gas from another bed after ED and partly restore pressure. \\
+7 & PR & Pressurization & Repressurize the bed to adsorption pressure before the next adsorption step. \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-\begin{figure}[H]
-\centering
-\fbox{\parbox[c][3.8cm][c]{0.86\textwidth}{\centering Placeholder for literature figure: ANN architecture and surrogate-assisted optimization strategy.}}
-\caption{Literature ANN and optimization workflow placeholder.}
-\end{figure}
+This cycle structure explains why the six input variables have coupled effects. FAD controls how quickly fresh flue gas loads the bed during adsorption. FRP and TRP determine how strongly the CO$_2$-rich replacement stream pushes out residual N$_2$. FVU controls the vacuum withdrawal rate, while TED and TPR control how much pressure equalization and repressurization are completed before the next cycle. Changing one variable therefore affects not only one KPI but also the bed inventory and pressure history that carry into later steps.
+
+Recent VPSA research has moved from simple four-step PSA cycles toward multi-bed, pressure-equalized, two-stage, and dual-reflux designs. Multi-bed and two-stage configurations have been studied to improve CO$_2$ recovery and handle continuous feed operation \cite{liu2011multibed,shen2012twostage}. Dual-reflux PSA/VPSA variants introduce additional recycle structure to increase separation strength for CO$_2$/N$_2$ systems \cite{li2016dualreflux,shen2017dualreflux}. Pilot and onsite studies have shown that adsorption-based flue-gas capture can be operated beyond purely numerical examples, but they also highlight the sensitivity of performance to cycle timing, pressure levels, and adsorbent behavior \cite{krishnamurthy2014pilot,liu2012onsite,wang2013pilotvpsa}.
+
+The optimization literature treats PSA and VPSA as difficult cyclic dynamic optimization problems. Detailed process models usually solve coupled mass, energy, momentum, and adsorption equations until cyclic steady state, so direct optimization can be slow when many decision variables and constraints are present \cite{haghpanah2013multiobjective,yan2016dryfluegas}. Surrogate modeling is a practical response: a detailed simulator is sampled first, then a fast regression model is used inside the optimizer. Previous work has used support vector machines, radial basis functions, polynomial response surfaces, Kriging, and neural networks; deep-learning and ANN models have also been used to emulate PSA dynamics and process indicators \cite{oliveira2020deeplearningpsa,wang2022comparative}.
+
+Multi-objective optimization is needed because the desirable KPIs conflict: higher purity can reduce recovery, stronger evacuation can lower residual loading but raise specific energy, and high throughput can shorten contact time. Pareto-based algorithms such as MOPSO, MOEA/D, NSGA-II, and NSGA-III are commonly used because they return a set of tradeoff solutions instead of a single weighted optimum \cite{coello2002mopso,zhang2007moead,deb2002nsga2,deb2014nsga3}. This report follows the same research direction but focuses on scalar KPI surrogates rather than full axial bed-profile prediction.
 
 \section{Data Conversion and Exploration}
-The raw MATLAB file contains two variables: \texttt{invar} with shape $1708 \times 6$ and \texttt{result\_matrix} with shape $1708 \times 284$. Only the first four columns of \texttt{result\_matrix} are used as scalar KPIs. The conversion script writes \path{data/psa_scalar_samples.csv}, \path{data/psa_input_bounds.csv}, and \path{data/psa_scalar_summary.csv}. The final sample table has 1708 rows and 12 columns.
+The raw MATLAB file contains two variables. The input matrix \texttt{invar} has shape $1708 \times 6$, and the output matrix \texttt{result\_matrix} has shape $1708 \times 284$. Only the first four output columns are used as scalar KPIs. The original samples were generated from a Latin hypercube design, which is a standard way to cover a multidimensional simulator input space efficiently \cite{mckay1979lhs}. The conversion script writes \path{data/psa_scalar_samples.csv}, \path{data/psa_input_bounds.csv}, and \path{data/psa_scalar_summary.csv}. The final sample table has 1708 rows and 12 columns.
 
 \begin{table}[H]
 \centering
@@ -91,7 +111,7 @@ TPR & Pressurization time (s) & 15.00 & 25.00 \\
 \caption{Distribution of recovery, purity, productivity, and specific energy in the successful simulation dataset.}
 \end{figure}
 
-The simulation data show the expected PSA tradeoffs. Recovery spans 0.178--0.935, purity spans 0.636--0.918, productivity spans 0.076--0.552 mol h$^{-1}$ kg$^{-1}$, and specific energy spans 913--3488 kJ kgCO$_2^{-1}$. The empirical fronts in Figure 3 are used to define near-Pareto subsets for model evaluation.
+The simulation data show the expected PSA tradeoffs. Recovery spans 0.178--0.935, purity spans 0.636--0.918, productivity spans 0.076--0.552 mol h$^{-1}$ kg$^{-1}$, and specific energy spans 913--3488 kJ kgCO$_2^{-1}$. The empirical fronts in Figure 5 are used to define near-Pareto subsets for model evaluation. The productivity-energy subset is now computed from all successful samples without imposing purity or recovery constraints.
 
 \begin{figure}[H]
 \centering
@@ -100,7 +120,7 @@ The simulation data show the expected PSA tradeoffs. Recovery spans 0.178--0.935
 \end{figure}
 
 \section{Surrogate Modeling}
-The training script compares eight model families: ridge regression, polynomial ridge regression, RBF kernel ridge regression, RBF SVR, random forest, extra trees, histogram gradient boosting, and multilayer perceptron regression. The data are split into 80\% training and 20\% testing with random seed 42. Hyperparameters are selected by 3-fold cross-validation on the training set. Energy is modeled in log space to reduce scale imbalance, then transformed back to kJ kgCO$_2^{-1}$ for reporting.
+The training script compares eight model families: ridge regression, polynomial ridge regression, RBF kernel ridge regression, RBF SVR, random forest, extra trees, histogram gradient boosting, and multilayer perceptron regression. This model set covers linear, kernel, tree-ensemble, and neural-network regressors that are commonly used for nonlinear process surrogates \cite{cortes1995svm,breiman2001random,bishop2006pattern}. The data are split into 80\% training and 20\% testing with random seed 42. Hyperparameters are selected by 3-fold cross-validation on the training set. Energy is modeled in log space to reduce scale imbalance, then transformed back to kJ kgCO$_2^{-1}$ for reporting.
 
 Models are ranked by
 \[
@@ -116,11 +136,11 @@ where $E$ is the mean normalized RMSE across recovery, purity, productivity, and
 \toprule
 Model & Global NRMSE & Pareto NRMSE & Score & Mean test $R^2$ \\
 \midrule
-RBF SVR & 0.00276 & 0.00297 & 0.00288 & 0.99978 \\
-RBF kernel ridge & 0.00255 & 0.00331 & 0.00301 & 0.99977 \\
-Polynomial ridge & 0.00223 & 0.00510 & 0.00395 & 0.99983 \\
-Neural network & 0.01160 & 0.01579 & 0.01411 & 0.99725 \\
-Gradient boosting & 0.02497 & 0.02575 & 0.02544 & 0.98752 \\
+RBF kernel ridge & 0.00255 & 0.00271 & 0.00265 & 0.99977 \\
+RBF SVR & 0.00276 & 0.00271 & 0.00273 & 0.99978 \\
+Polynomial ridge & 0.00223 & 0.00378 & 0.00316 & 0.99983 \\
+Neural network & 0.01160 & 0.01350 & 0.01274 & 0.99725 \\
+Gradient boosting & 0.02497 & 0.02401 & 0.02439 & 0.98752 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -131,7 +151,7 @@ Gradient boosting & 0.02497 & 0.02575 & 0.02544 & 0.98752 \\
 \caption{Global and Pareto-focused normalized RMSE for the tuned surrogate candidates.}
 \end{figure}
 
-The selected surrogate is the RBF SVR with $C=100$, $\epsilon=0.001$, and $\gamma=0.1$. Its held-out test errors are small for all four KPIs: recovery RMSE is 0.00122, purity RMSE is 0.00035, productivity RMSE is 0.00064 mol h$^{-1}$ kg$^{-1}$, and energy RMSE is 22.74 kJ kgCO$_2^{-1}$. The predicted-versus-simulated plots confirm that this model is accurate enough for surrogate screening.
+The selected surrogate is the RBF kernel ridge model with $\alpha=0.0001$ and $\gamma=0.03$. Its held-out test errors are small for all four KPIs: recovery RMSE is 0.00105, purity RMSE is 0.00024, productivity RMSE is 0.00043 mol h$^{-1}$ kg$^{-1}$, and energy RMSE is 22.55 kJ kgCO$_2^{-1}$. The predicted-versus-simulated plots confirm that this model is accurate enough for surrogate screening.
 
 \begin{figure}[H]
 \centering
@@ -140,7 +160,7 @@ The selected surrogate is the RBF SVR with $C=100$, $\epsilon=0.001$, and $\gamm
 \end{figure}
 
 \section{Surrogate-Assisted Optimization}
-The selected RBF SVR is optimized with an in-house NSGA-II implementation. Candidate solutions are represented as normalized decision variables and decoded to the physical bounds in Table \ref{tab:bounds}. The optimizer uses simulated binary crossover, polynomial mutation, nondominated sorting, and crowding distance selection.
+The selected RBF kernel ridge surrogate is optimized with an in-house NSGA-II implementation \cite{deb2002nsga2}. Candidate solutions are represented as normalized decision variables and decoded to the physical bounds in Table \ref{tab:bounds}. The optimizer uses simulated binary crossover, polynomial mutation, nondominated sorting, and crowding distance selection.
 
 Two problems are solved:
 \[
@@ -148,21 +168,21 @@ Two problems are solved:
 \]
 and
 \[
-\max\; \mathrm{productivity}, \quad \min\; \mathrm{energy},
-\quad \mathrm{subject\ to}\quad \mathrm{purity}\ge 0.70,\; \mathrm{recovery}\ge 0.90.
+\max\; \mathrm{productivity}, \quad \min\; \mathrm{energy}.
 \]
-Both runs use population size 160 and 250 generations.
+Both runs use population size 160 and 250 generations. Purity and recovery are still predicted and reported for the second problem, but they are not used as constraints.
 
 \begin{table}[H]
 \centering
+\small
 \caption{Surrogate optimization front summaries.}
 \label{tab:opt-summary}
-\begin{tabular}{lrrrr}
+\begin{tabular}{@{}lrrrr@{}}
 \toprule
-Problem & Purity range & Recovery range & Productivity range & Energy range \\
+Problem & Purity & Recovery & Productivity & Energy \\
 \midrule
-Purity-recovery & 0.719--0.918 & 0.349--0.935 & 0.170--0.372 & 1127--2897 \\
-Productivity-energy & 0.745--0.757 & 0.900--0.900 & 0.485--0.504 & 961--1003 \\
+Purity-recovery & 0.770--0.918 & 0.393--0.935 & 0.170--0.307 & 1423--2757 \\
+Productivity-energy & 0.770--0.788 & 0.819--0.838 & 0.532--0.552 & 913--936 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -173,10 +193,16 @@ Productivity-energy & 0.745--0.757 & 0.900--0.900 & 0.485--0.504 & 961--1003 \\
 \caption{NSGA-II surrogate fronts for the two optimization problems.}
 \end{figure}
 
-\section{Discussion}
-The purity-recovery front shows a strong compromise. The maximum-purity candidate reaches the observed upper purity bound of 0.918, but recovery falls to 0.349 and energy rises to about 2897 kJ kgCO$_2^{-1}$. The maximum-recovery candidate reaches 0.935 recovery with purity of 0.719, productivity of 0.358 mol h$^{-1}$ kg$^{-1}$, and energy of 1139 kJ kgCO$_2^{-1}$. This behavior matches the physical intuition from cyclic adsorption: pushing the bed toward higher enrichment can reduce capture recovery, while aggressive recovery can dilute product purity.
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{08_optimization_input_distributions.pdf}
+\caption{Input-variable distributions of the optimized nondominated candidates within the original LHS sampling ranges.}
+\end{figure}
 
-The constrained productivity-energy problem gives a narrower front. All nondominated candidates satisfy the purity and recovery constraints, and the optimizer concentrates near recovery of 0.900. The minimum-energy point predicts 0.756 purity, 0.900 recovery, 0.485 mol h$^{-1}$ kg$^{-1}$ productivity, and 961 kJ kgCO$_2^{-1}$ energy. The maximum-productivity point predicts 0.748 purity, 0.900 recovery, 0.504 mol h$^{-1}$ kg$^{-1}$ productivity, and 1003 kJ kgCO$_2^{-1}$ energy. The energy-productivity tradeoff is therefore milder than the purity-recovery tradeoff once purity and recovery constraints are imposed.
+\section{Discussion}
+The purity-recovery front shows a strong compromise. The maximum-purity candidate reaches the observed upper purity bound of 0.918, but recovery falls to 0.393 and energy rises to about 2691 kJ kgCO$_2^{-1}$. The maximum-recovery candidate reaches 0.935 recovery with purity of 0.770, productivity of 0.303 mol h$^{-1}$ kg$^{-1}$, and energy of 1434 kJ kgCO$_2^{-1}$. This behavior matches the physical intuition from cyclic adsorption: pushing the bed toward higher enrichment can reduce capture recovery, while aggressive recovery can dilute product purity.
+
+The unconstrained productivity-energy problem moves to a different operating region. The minimum-energy point predicts 0.770 purity, 0.826 recovery, 0.532 mol h$^{-1}$ kg$^{-1}$ productivity, and 913 kJ kgCO$_2^{-1}$ energy. The maximum-productivity point predicts 0.787 purity, 0.835 recovery, 0.552 mol h$^{-1}$ kg$^{-1}$ productivity, and 936 kJ kgCO$_2^{-1}$ energy. Removing the purity and recovery constraints allows the optimizer to favor high-throughput, low-energy operation, but the resulting recovery is below the previously imposed 0.90 specification.
 
 \begin{figure}[H]
 \centering
@@ -185,12 +211,12 @@ The constrained productivity-energy problem gives a narrower front. All nondomin
 \end{figure}
 
 \section{Conclusions}
-The project converts the successful gPROMS VPSA simulations into a clean scalar dataset, benchmarks tuned machine-learning surrogates, and uses the best model for multi-objective optimization. The RBF SVR gives the best Pareto-aware selection score and very high held-out accuracy across the four KPIs. NSGA-II reveals two operating regimes: a broad purity-recovery tradeoff with strong competition between objectives, and a narrower productivity-energy front under purity and recovery constraints. The workflow is reproducible through the scripts in \path{src/} and the generated CSV artifacts in \path{data/}.
+The project converts the successful gPROMS VPSA simulations into a clean scalar dataset, benchmarks tuned machine-learning surrogates, and uses the best model for multi-objective optimization. The RBF kernel ridge model gives the best Pareto-aware selection score and very high held-out accuracy across the four KPIs. NSGA-II reveals two operating regimes: a broad purity-recovery tradeoff with strong competition between objectives, and an unconstrained productivity-energy front that prioritizes high throughput and low specific energy. The workflow is reproducible through the scripts in \path{src/} and the generated CSV artifacts in \path{data/}.
 
 \section*{AI Use Acknowledgement}
 Generative AI was used to assist with code organization, figure generation, and report drafting. The data, interpretation, and final responsibility remain with the student.
 
-\bibliographystyle{plain}
+\bibliographystyle{unsrt}
 \IfFileExists{references.bib}{\bibliography{references}}{\bibliography{report/references}}
 
 \end{document}

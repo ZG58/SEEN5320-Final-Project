@@ -1,9 +1,9 @@
 model_name,model_label,best_cv_norm_rmse,best_params
 ridge,Ridge,0.060932433292591216,"{""regressor__model__alpha"": 0.0001}"
-polynomial_ridge,Polynomial ridge,0.002524207034490592,"{""regressor__model__alpha"": 0.001, ""regressor__poly__degree"": 4}"
-kernel_ridge_rbf,RBF kernel ridge,0.003492715415820436,"{""regressor__model__alpha"": 0.0001, ""regressor__model__gamma"": 0.03}"
+polynomial_ridge,Polynomial ridge,0.0025242070344905962,"{""regressor__model__alpha"": 0.001, ""regressor__poly__degree"": 4}"
+kernel_ridge_rbf,RBF kernel ridge,0.0034927154158209545,"{""regressor__model__alpha"": 0.0001, ""regressor__model__gamma"": 0.03}"
 svr_rbf,RBF SVR,0.004861618943840655,"{""regressor__model__estimator__C"": 100.0, ""regressor__model__estimator__epsilon"": 0.001, ""regressor__model__estimator__gamma"": 0.1}"
 random_forest,Random forest,0.053508789377383854,"{""regressor__max_depth"": null, ""regressor__max_features"": 1.0, ""regressor__min_samples_leaf"": 1, ""regressor__n_estimators"": 240}"
 extra_trees,Extra trees,0.04529263057421289,"{""regressor__max_depth"": 20, ""regressor__max_features"": 1.0, ""regressor__min_samples_leaf"": 1, ""regressor__n_estimators"": 300}"
 hist_gradient_boosting,Gradient boosting,0.03169395257798325,"{""regressor__estimator__l2_regularization"": 0.001, ""regressor__estimator__learning_rate"": 0.08, ""regressor__estimator__max_iter"": 320, ""regressor__estimator__max_leaf_nodes"": 15}"
-mlp,Neural network,0.013195680368892264,"{""regressor__model__alpha"": 0.001, ""regressor__model__hidden_layer_sizes"": [128, 64], ""regressor__model__learning_rate_init"": 0.001}"
+mlp,Neural network,0.013195680368892265,"{""regressor__model__alpha"": 0.001, ""regressor__model__hidden_layer_sizes"": [128, 64], ""regressor__model__learning_rate_init"": 0.001}"

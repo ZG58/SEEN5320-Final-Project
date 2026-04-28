@@ -54,9 +54,6 @@ TARGET_LABELS = {
 }
 
 RANDOM_STATE = 42
-PURITY_CONSTRAINT = 0.70
-RECOVERY_CONSTRAINT = 0.90
-
 
 def ensure_output_dirs() -> None:
     REPORT_FIG_DIR.mkdir(parents=True, exist_ok=True)
@@ -211,21 +208,14 @@ def empirical_pareto_masks(frame: pd.DataFrame) -> dict[str, np.ndarray]:
     pr_front = nondominated_mask(pr_scores, maximize=[True, True])
     pr_near = near_pareto_mask(pr_scores, pr_front, min_count=60, fraction=0.10)
 
-    eligible = frame["purity"].ge(PURITY_CONSTRAINT) & frame["recovery"].ge(RECOVERY_CONSTRAINT)
-    pe_front = np.zeros(len(frame), dtype=bool)
-    pe_near = np.zeros(len(frame), dtype=bool)
-    if eligible.any():
-        eligible_idx = np.flatnonzero(eligible.to_numpy())
-        pe_scores = frame.loc[eligible, ["productivity_mol_h_kg", "energy_kJ_kgCO2"]].to_numpy(float)
-        local_front = nondominated_mask(pe_scores, maximize=[True, False])
-        local_near = near_pareto_mask(
-            np.column_stack([pe_scores[:, 0], -pe_scores[:, 1]]),
-            local_front,
-            min_count=min(40, len(eligible_idx)),
-            fraction=0.20,
-        )
-        pe_front[eligible_idx[local_front]] = True
-        pe_near[eligible_idx[local_near]] = True
+    pe_scores = frame[["productivity_mol_h_kg", "energy_kJ_kgCO2"]].to_numpy(float)
+    pe_front = nondominated_mask(pe_scores, maximize=[True, False])
+    pe_near = near_pareto_mask(
+        np.column_stack([pe_scores[:, 0], -pe_scores[:, 1]]),
+        pe_front,
+        min_count=60,
+        fraction=0.10,
+    )
 
     return {
         "purity_recovery_front": pr_front,
@@ -233,7 +223,6 @@ def empirical_pareto_masks(frame: pd.DataFrame) -> dict[str, np.ndarray]:
         "productivity_energy_front": pe_front,
         "productivity_energy_near": pe_near,
         "pareto_focus": pr_near | pe_near,
-        "productivity_energy_eligible": eligible.to_numpy(),
     }
 
 
